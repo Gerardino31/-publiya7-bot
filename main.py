@@ -16,12 +16,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Agregar path para importar módulos del bot
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from app.bot_autodetect import bot_autodetect
-from app.config import config
-
 # Crear aplicación FastAPI
 app = FastAPI(title="Publiya7 Bot", version="1.0.0")
 
@@ -55,7 +49,8 @@ async def verify_webhook(request: Request):
         logger.info(f"Verificación webhook: mode={mode}, token={token}")
         
         # Verificar token
-        if mode == 'subscribe' and token == config.WHATSAPP_VERIFY_TOKEN:
+        verify_token = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'publiya7_webhook_token_2024')
+        if mode == 'subscribe' and token == verify_token:
             logger.info("Webhook verificado correctamente")
             return Response(content=challenge, media_type="text/plain")
         else:
@@ -73,6 +68,10 @@ async def receive_webhook(request: Request):
     Meta envía los mensajes del usuario a este endpoint.
     """
     try:
+        # Importar aquí para evitar errores durante el arranque
+        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+        from app.bot_autodetect import bot_autodetect
+        
         # Obtener el cuerpo del mensaje
         body = await request.json()
         
@@ -102,7 +101,6 @@ async def receive_webhook(request: Request):
         logger.info(f"Mensaje de {from_number}: {text}")
         
         # Detectar cliente por número de teléfono del negocio
-        # En WhatsApp Business API, el número del negocio viene en 'metadata'
         metadata = value.get('metadata', {})
         business_phone = metadata.get('display_phone_number', '')
         
@@ -115,10 +113,6 @@ async def receive_webhook(request: Request):
         )
         
         logger.info(f"Respuesta del bot: {respuesta}")
-        
-        # Enviar respuesta de vuelta a WhatsApp
-        # Aquí deberíamos llamar a la API de WhatsApp para enviar el mensaje
-        # Por ahora solo registramos la respuesta
         
         return JSONResponse(content={
             "status": "processed",
@@ -137,9 +131,7 @@ async def get_info():
     """Obtiene información del sistema."""
     return {
         "bot_name": "Publiya7 Bot",
-        "version": "1.0.0",
-        "clientes_registrados": len(bot_autodetect.routers),
-        "configurado_whatsapp": config.esta_configurado_whatsapp()
+        "version": "1.0.0"
     }
 
 # Inicializar al arrancar
