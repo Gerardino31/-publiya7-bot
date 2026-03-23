@@ -1,0 +1,275 @@
+{
+  "nombre_empresa": "Imprenta Pérez",
+  "telefono": "+57 300 123 4567",
+  "email": "contacto@imprentaperez.com",
+  "ciudad": "Bogotá",
+  "horario_atencion": "Lunes a Viernes 8am - 6pm, Sábados 9am - 1pm",
+  "nota_precios": "Los precios no incluyen diseño gráfico",
+  
+  "precios": {
+    "gran_formato": {
+      "banner": {
+        "medida_minima": 55000,
+        "cm2_con_terminado": 8.5,
+        "cm2_sin_terminado": 7.5,
+        "instalacion_cm2": 3.5
+      },
+      "panaflex": {
+        "medida_minima": 65000,
+        "cm2": 10,
+        "instalacion_cm2": 3.5
+      },
+      "adhesivo": {
+        "sin_laminar_cm2": 7.5,
+        "laminado_cm2": 9.4,
+        "laminado_con_contorno_cm2": 12,
+        "instalacion_cm2": 3.5
+      },
+      "microperforado": {
+        "medida_minima": 65000,
+        "cm2": 10
+      }
+    },
+    
+    "tarjetas_presentacion_1000_unid": {
+      "propalcote_300gr_9x5cm": {
+        "sencilla_brillo_uv_1_cara": 75000,
+        "sencilla_brillo_uv_2_caras": 85000,
+        "mate_1_cara": 119000,
+        "mate_2_caras": 130000,
+        "mate_con_reserva_1_cara": 145000,
+        "mate_con_reserva_2_caras": 165000
+      },
+      "estampada_1_lado": 350000,
+      "estampada_2_lados": 380000,
+      "lamindada": 390000
+    },
+    
+    "volantes_propalcote_115gr_1000_unid": {
+      "1_cara_4x0_13x7": 75000,
+      "2_caras_4x4_13x7": 120000,
+      "1_cara_4x0_21x10": 130000,
+      "2_caras_4x4_21x10": 220000,
+      "2_caras_4x4_21x12": 240000,
+      "1_cara_4x0_21x12": 150000,
+      "1_cara_4x0_21x13": 185000,
+      "2_caras_4x4_21x13": 260000,
+      "1_cara_4x0_10_5x10_2000_unid": 120000,
+      "1_cara_4x0_10_5x13_2000_unid": 150000
+    },
+    
+    "plegables_115_150gr_1000_unid": {
+      "tamano_carta": 540000,
+      "tamano_oficio": 590000
+    },
+    
+    "sellos_automaticos": {
+      "10x26mm": 48000,
+      "14x38mm": 50000,
+      "18x47mm": 65000,
+      "22x58mm": 75000,
+      "27x65mm": 85000,
+      "25x70mm": 95000
+    },
+    
+    "pendones": {
+      "medida_minima": 55000,
+      "edicion_fotos_o_diseno": 25000,
+      "cm2_con_terminado": 8.5,
+      "instalacion_cm2": 3.5
+    },
+    
+    "hojas_membretes_1000_unid": {
+      "impresion_1_cara_tamano_carta": 165000
+    },
+    
+    "bastidores": {
+      "medida_minima": 240000,
+      "cm2": 35,
+      "instalacion_cm2": 6.5
+    },
+    
+    "tijeras": {
+      "1mts_x_50cm": 380000,
+      "1_20mts_x_60cm": 450000,
+      "1_50mts_x_70cm": 490000
+    },
+    
+    "avisos_luminosos": {
+      "estructura_hierro_tapas_galvanizado": {
+        "medida_minima": 650000,
+        "cm2": 65,
+        "instalacion_cm2": 15
+      },
+      "estructura_aluminio_tapas_galvanizado": {
+        "medida_minima": 950000,
+        "cm2": 95,
+        "instalacion_cm2": 15
+      }
+    },
+    
+    "carnets": {
+      "pvc_porta_carnet_silicona_transparente_1_unid": 30000
+    },
+    
+    "pad_mouse": {
+      "personalizado_x12_unid": 25000
+    },
+    
+    "talonarios": {
+      "papel_natural_original_y_copia": {
+        "1_4_carta": 110000,
+        "1_2_carta": 160000,
+        "carta": 300000,
+        "oficio": 360000
+      },
+      "papel_quimico_original_y_copia": {
+        "1_4_carta": 120000,
+        "1_2_carta": 170000,
+        "carta": 350000,
+        "oficio": 390000
+      }
+    },
+    
+    "afiches_papel_natural_1000_unid": {
+      "35x28cm": 280000
+    },
+    
+    "adhesivo_seguridad_cascara_huevo_9x7mm": {
+      "1000_unid": 55000,
+      "2000_unid": 100000
+    },
+    
+    "vinilos_decorativos": {
+      "estandar_1mts_x_55cm": 55000,
+      "cm2": 9.4,
+      "instalacion_cm2": 3.5
+    },
+    
+    "servicio_plotter_corte": {
+      "1mts_x_60cm": 18000
+    },
+    
+    "souvenirs_tulas": {
+      "15x22cm_5_750_c_u_x12_unid": 69000,
+      "20x25cm_6_325_c_u_x12_unid": 75900,
+      "20x27cm_7_500_c_u_x12_unid": 90000,
+      "27x36cm_11_000_c_u_x12_unid": 132000,
+      "29x35cm_11_500_c_u_x12_unid": 138000
+    },
+    
+    "termos_x12_unid": {
+      "sinker": 10000,
+      "lake": 13500,
+      "weser": 12500,
+      "gym": 8500
+    },
+    
+    "etiquetas": {
+      "1000_a_3000_unid": 550,
+      "4000_a_6000_unid": 480,
+      "7000_a_9000_unid": 450,
+      "desde_10000_unid": 350
+    },
+    
+    "cajas": {
+      "1000_a_2000_unid": 1000,
+      "3000_a_5000_unid": 950,
+      "6000_a_8000_unid": 900,
+      "desde_9000_unid": 850
+    }
+  },
+  
+  "cotizacion_personalizada": {
+    "productos": [
+      "Camisetas estampadas",
+      "Camisetas personalizadas",
+      "Souvenirs personalizados",
+      "Merchandising personalizado",
+      "Diseño gráfico"
+    ],
+    "mensaje": "Estos productos requieren cotización personalizada según especificaciones del cliente (talla, color, tipo de estampado, cantidad, diseño, etc.). Por favor indícanos qué necesitas exactamente para prepararte una cotización."
+  },
+  
+  "productos": {
+    "banner": "Banner Publicitario",
+    "banners": "Banner Publicitario",
+    "panaflex": "Panaflex",
+    "adhesivo": "Adhesivo",
+    "adhesivos": "Adhesivo",
+    "adhesivo laminado": "Adhesivo Laminado",
+    "adhesivo seguridad": "Adhesivo Cáscara de Huevo",
+    "cascara de huevo": "Adhesivo Cáscara de Huevo",
+    "microperforado": "Microperforado",
+    "tarjeta": "Tarjetas de Presentación",
+    "tarjetas": "Tarjetas de Presentación",
+    "volante": "Volantes",
+    "volantes": "Volantes",
+    "flyer": "Flyers",
+    "flyers": "Flyers",
+    "plegable": "Plegables",
+    "plegables": "Plegables",
+    "sello": "Sellos Automáticos",
+    "sellos": "Sellos Automáticos",
+    "pendon": "Pendones",
+    "pendones": "Pendones",
+    "membrete": "Hojas Membretes",
+    "membretes": "Hojas Membretes",
+    "bastidor": "Bastidores",
+    "bastidores": "Bastidores",
+    "tijera": "Tijeras Publicitarias",
+    "tijeras": "Tijeras Publicitarias",
+    "aviso": "Avisos Luminosos",
+    "avisos": "Avisos Luminosos",
+    "carnet": "Carnets PVC",
+    "carnets": "Carnets PVC",
+    "pad": "Pad Mouse",
+    "mouse": "Pad Mouse",
+    "talonario": "Talonarios",
+    "talonarios": "Talonarios",
+    "afiche": "Afiches",
+    "afiches": "Afiches",
+    "vinil": "Vinilos Decorativos",
+    "vinilo": "Vinilos Decorativos",
+    "vinilos": "Vinilos Decorativos",
+    "plotter": "Servicio Plotter de Corte",
+    "corte": "Servicio Plotter de Corte",
+    "tula": "Tulas",
+    "tulas": "Tulas",
+    "souvenir": "Souvenirs",
+    "souvenirs": "Souvenirs",
+    "termo": "Termos",
+    "termos": "Termos",
+    "etiqueta": "Etiquetas",
+    "etiquetas": "Etiquetas",
+    "caja": "Cajas",
+    "cajas": "Cajas",
+    "camiseta": "Camisetas (Cotización Personalizada)",
+    "camisetas": "Camisetas (Cotización Personalizada)",
+    "camisa": "Camisetas (Cotización Personalizada)",
+    "camisas": "Camisetas (Cotización Personalizada)",
+    "polo": "Camisetas (Cotización Personalizada)",
+    "polos": "Camisetas (Cotización Personalizada)"
+  },
+  
+  "tiempos_entrega": {
+    "gran_formato": "1-3 días hábiles",
+    "tarjetas": "2-3 días hábiles",
+    "volantes": "1-2 días hábiles",
+    "talonarios": "2-3 días hábiles",
+    "sellos": "1 día hábil",
+    "souvenirs": "3-5 días hábiles",
+    "termos": "3-5 días hábiles",
+    "etiquetas": "2-3 días hábiles",
+    "cajas": "3-5 días hábiles"
+  },
+  
+  "metodos_pago": ["Efectivo", "Transferencia", "Nequi", "Daviplata"],
+  
+  "mensajes": {
+    "bienvenida": "¡Hola! Bienvenido a Imprenta Pérez. ¿En qué puedo ayudarte?",
+    "despedida": "Gracias por contactarnos. Estamos aquí para lo que necesites.",
+    "nota_diseño": "Los precios no incluyen diseño gráfico. Si necesitas diseño, podemos cotizarlo por separado.",
+    "cotizacion_personalizada": "Este producto requiere cotización personalizada. Por favor indícanos: cantidad, especificaciones, tallas, colores, tipo de estampado, etc. para prepararte una cotización a tu medida."
+  }
+}

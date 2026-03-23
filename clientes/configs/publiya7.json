@@ -1,0 +1,236 @@
+{
+  "cliente_id": "publiya7",
+  "nombre": "Publiya7",
+  "eslogan": "Publicidad al Instante",
+  "ciudad": "Medellín",
+  "departamento": "Antioquia",
+  "pais": "Colombia",
+  "telefono": "+57 314 390 9874",
+  "telefono_secundario": "+57 323 360 5163",
+  "whatsapp": "+57 314 390 9874",
+  "email": "publiya7@gmail.com",
+  "direccion": "Medellín, Colombia",
+  "horario_atencion": {
+    "lunes_viernes": "8:00 am - 5:00 pm",
+    "sabados": "8:00 am - 2:00 pm",
+    "domingos": "Cerrado"
+  },
+  "instagram": "@publiya7",
+  "facebook": "http://publiya7.com.co/",
+  "tiktok": "@publiya7",
+  "sitio_web": "http://publiya7.com.co/",
+  "nota_precios": "Los precios no incluyen diseño gráfico",
+  "tiempo_entrega_default": "2-5 días hábiles",
+  "moneda": "COP",
+  "metodos_pago": ["Efectivo", "Transferencia", "Nequi", "Daviplata"],
+  
+  "categorias": {
+    "tarjetas": {
+      "nombre": "Tarjetas de Presentación",
+      "tipo_cotizacion": "cantidad",
+      "unidad_base": 1000,
+      "tipos": [
+        {
+          "id": "sencilla_uv_1",
+          "nombre": "Sencilla Brillo UV - 1 cara",
+          "descripcion": "Propalcote 300gr 9x5cm",
+          "precio_1000": 75000,
+          "precio_2000": 142500,
+          "precio_5000": 337500
+        },
+        {
+          "id": "sencilla_uv_2",
+          "nombre": "Sencilla Brillo UV - 2 caras",
+          "descripcion": "Propalcote 300gr 9x5cm",
+          "precio_1000": 85000,
+          "precio_2000": 161500,
+          "precio_5000": 382500
+        },
+        {
+          "id": "mate_1",
+          "nombre": "Mate - 1 cara",
+          "descripcion": "Acabado mate elegante",
+          "precio_1000": 119000,
+          "precio_2000": 226100,
+          "precio_5000": 535500
+        },
+        {
+          "id": "mate_2",
+          "nombre": "Mate - 2 caras",
+          "descripcion": "Acabado mate ambos lados",
+          "precio_1000": 130000,
+          "precio_2000": 247000,
+          "precio_5000": 585000
+        },
+        {
+          "id": "mate_reserva_1",
+          "nombre": "Mate con Reserva UV - 1 cara",
+          "descripcion": "Reserva sectorizada",
+          "precio_1000": 145000,
+          "precio_2000": 275500,
+          "precio_5000": 652500
+        },
+        {
+          "id": "mate_reserva_2",
+          "nombre": "Mate con Reserva UV - 2 caras",
+          "descripcion": "Reserva sectorizada ambos lados",
+          "precio_1000": 165000,
+          "precio_2000": 313500,
+          "precio_5000": 742500
+        },
+        {
+          "id": "estampada_1",
+          "nombre": "Estampada Dorado/Plateado - 1 lado",
+          "descripcion": "Acabado premium metálico",
+          "precio_1000": 350000,
+          "precio_2000": 665000,
+          "precio_5000": 1575000
+        },
+        {
+          "id": "estampada_2",
+          "nombre": "Estampada Dorado/Plateado - 2 lados",
+          "descripcion": "Acabado premium metálico ambos lados",
+          "precio_1000": 380000,
+          "precio_2000": 722000,
+          "precio_5000": 1710000
+        },
+        {
+          "id": "imanadas",
+          "nombre": "Imanadas",
+          "descripcion": "Tarjeta imantada",
+          "precio_1000": 390000,
+          "precio_2000": 741000,
+          "precio_5000": 1755000
+        }
+      ]
+    },
+    
+    "volantes": {
+      "nombre": "Volantes y Plegables",
+      "tipo_cotizacion": "cantidad",
+      "unidad_base": 1000,
+      "tipos": [
+        {"id": "v_1c_13x7", "nombre": "1 cara 13x7cm", "precio_1000": 75000},
+        {"id": "v_2c_13x7", "nombre": "2 caras 13x7cm", "precio_1000": 120000},
+        {"id": "v_1c_21x10", "nombre": "1 cara 21x10cm", "precio_1000": 130000},
+        {"id": "v_2c_21x10", "nombre": "2 caras 21x10cm", "precio_1000": 220000},
+        {"id": "v_2c_21x12", "nombre": "2 caras 21x12cm", "precio_1000": 240000},
+        {"id": "v_1c_21x13", "nombre": "1 cara 21x13cm", "precio_1000": 185000},
+        {"id": "v_2c_21x13", "nombre": "2 caras 21x13cm", "precio_1000": 260000},
+        {"id": "pleg_carta", "nombre": "Plegable Tamaño Carta", "precio_1000": 540000},
+        {"id": "pleg_oficio", "nombre": "Plegable Tamaño Oficio", "precio_1000": 590000}
+      ]
+    },
+    
+    "etiquetas": {
+      "nombre": "Etiquetas",
+      "tipo_cotizacion": "cantidad",
+      "unidad_base": 1,
+      "tipos": [
+        {"id": "et_1000_3000", "nombre": "1.000 a 3.000 unidades", "precio_unitario": 550},
+        {"id": "et_4000_6000", "nombre": "4.000 a 6.000 unidades", "precio_unitario": 480},
+        {"id": "et_7000_9000", "nombre": "7.000 a 9.000 unidades", "precio_unitario": 450},
+        {"id": "et_10000", "nombre": "Desde 10.000 unidades", "precio_unitario": 350}
+      ]
+    },
+    
+    "cajas": {
+      "nombre": "Cajas",
+      "tipo_cotizacion": "cantidad",
+      "unidad_base": 1,
+      "tipos": [
+        {"id": "caj_1000_2000", "nombre": "1.000 a 2.000 unidades", "precio_unitario": 1000},
+        {"id": "caj_3000_5000", "nombre": "3.000 a 5.000 unidades", "precio_unitario": 950},
+        {"id": "caj_6000_8000", "nombre": "6.000 a 8.000 unidades", "precio_unitario": 900},
+        {"id": "caj_9000", "nombre": "Más de 9.000 unidades", "precio_unitario": 850}
+      ]
+    },
+    
+    "gran_formato": {
+      "nombre": "Gran Formato",
+      "tipo_cotizacion": "medida",
+      "unidad": "cm2",
+      "tipos": [
+        {"id": "banner_term", "nombre": "Banner con terminado", "precio_cm2": 8.5},
+        {"id": "banner_sin", "nombre": "Banner sin terminado", "precio_cm2": 7.5},
+        {"id": "panaflex", "nombre": "Panaflex", "precio_cm2": 10},
+        {"id": "adhesivo_sin", "nombre": "Adhesivo sin laminar", "precio_cm2": 7.5},
+        {"id": "adhesivo_lam", "nombre": "Adhesivo laminado", "precio_cm2": 9.4},
+        {"id": "adhesivo_cont", "nombre": "Adhesivo laminado con contorno", "precio_cm2": 12},
+        {"id": "microperf", "nombre": "Microperforado", "precio_cm2": 10},
+        {"id": "vinilos", "nombre": "Vinilos decorativos", "precio_cm2": 9.4}
+      ]
+    },
+    
+    "sellos": {
+      "nombre": "Sellos Automáticos",
+      "tipo_cotizacion": "cantidad",
+      "unidad_base": 1,
+      "tipos": [
+        {"id": "sello_10x26", "nombre": "10x26mm", "precio_unitario": 48000},
+        {"id": "sello_14x38", "nombre": "14x38mm", "precio_unitario": 50000},
+        {"id": "sello_18x47", "nombre": "18x47mm", "precio_unitario": 65000},
+        {"id": "sello_22x58", "nombre": "22x58mm", "precio_unitario": 75000},
+        {"id": "sello_27x65", "nombre": "27x65mm", "precio_unitario": 85000},
+        {"id": "sello_25x70", "nombre": "25x70mm", "precio_unitario": 95000}
+      ]
+    },
+    
+    "otros": {
+      "nombre": "Otros Productos",
+      "tipo_cotizacion": "personalizado",
+      "tipos": [
+        {"id": "talonarios", "nombre": "Talonarios", "requiere_cotizacion": true},
+        {"id": "afiches", "nombre": "Afiches", "requiere_cotizacion": true},
+        {"id": "bastidores", "nombre": "Bastidores", "requiere_cotizacion": true},
+        {"id": "tijeras", "nombre": "Tijeras Publicitarias", "requiere_cotizacion": true},
+        {"id": "avisos", "nombre": "Avisos Luminosos", "requiere_cotizacion": true},
+        {"id": "carnets", "nombre": "Carnets PVC", "requiere_cotizacion": true},
+        {"id": "pad_mouse", "nombre": "Pad Mouse", "requiere_cotizacion": true},
+        {"id": "cascara", "nombre": "Cáscara de Huevo (Adhesivo seguridad)", "requiere_cotizacion": true},
+        {"id": "plotter", "nombre": "Plotter de Corte", "requiere_cotizacion": true},
+        {"id": "souvenirs", "nombre": "Souvenirs (Tulas, Termos)", "requiere_cotizacion": true},
+        {"id": "camisetas", "nombre": "Camisetas (Cotización personalizada)", "requiere_cotizacion": true}
+      ]
+    }
+  },
+  
+  "respuestas": {
+    "fallback": [
+      "Disculpe, no entendí bien. ¿Podría repetirme?",
+      "No estoy seguro de haber comprendido. ¿Me da más detalles?",
+      "¿Podría reformular su pregunta? Con gusto le ayudo."
+    ],
+    "cortesia_general": [
+      "Con mucho gusto le ayudo...",
+      "Será un placer atenderle...",
+      "En Publiya7 estamos para servirle..."
+    ],
+    "cotizando": [
+      "Permíteme preparar su cotización...",
+      "Un momento mientras calculo...",
+      "Déjeme buscarle la mejor opción..."
+    ],
+    "excelente_eleccion": [
+      "¡Excelente elección! Ese producto tiene muy buena acogida.",
+      "¡Muy buen gusto! Es uno de nuestros más solicitados.",
+      "¡Perfecto! Esa es una opción muy popular."
+    ],
+    "agradecimiento": [
+      "Gracias por preferir Publiya7.",
+      "Ha sido un gusto atenderle.",
+      "Fue un placer ayudarle."
+    ],
+    "despedida": [
+      "Estamos a sus órdenes para cualquier consulta.",
+      "Esperamos que se haya sentido bien atendido.",
+      "Que tenga un excelente día."
+    ]
+  },
+  
+  "politicas": {
+    "anticipo_minimo": 0.50,
+    "revisiones_diseno": 2,
+    "garantia": "Por defectos de impresión"
+  }
+}

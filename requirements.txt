@@ -1,0 +1,17 @@
+# Framework web
+fastapi>=0.100.0
+uvicorn>=0.23.0
+
+# Base de datos
+sqlite3-python
+
+# Utilidades
+python-dotenv>=1.0.0
+requests>=2.31.0
+
+# Logging (ya incluido en Python)
+# logging
+
+# Para producción
+# gunicorn
+# python-multipart

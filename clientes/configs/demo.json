@@ -1,0 +1,32 @@
+{
+  "nombre_empresa": "Publiya7",
+  "telefono": "+57 314 390 9874",
+  "email": "publiya7@gmail.com",
+  "precios": {
+    "gran_formato": {
+      "banner": {
+        "cm2_con_terminado": 8.5
+      },
+      "adhesivo": {
+        "laminado_cm2": 9.4
+      }
+    },
+    "etiquetas": {
+      "1000_a_3000_unid": 550,
+      "desde_10000_unid": 350
+    },
+    "cajas": {
+      "1000_a_2000_unid": 1000,
+      "desde_9000_unid": 850
+    }
+  },
+  "productos": {
+    "adhesivo": "Adhesivo Laminado",
+    "vinil": "Vinil",
+    "banner": "Banner",
+    "tarjeta": "Tarjetas de Presentación",
+    "etiqueta": "Etiquetas",
+    "caja": "Cajas",
+    "camiseta": "Camisetas (Cotización Personalizada)"
+  }
+}

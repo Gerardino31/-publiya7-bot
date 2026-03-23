@@ -1,0 +1,133 @@
+{
+  "cliente_id": "imprentaxyz",
+  "nombre": "Imprenta XYZ",
+  "eslogan": "Calidad que se ve, precios que convencen",
+  "ciudad": "Bogotá",
+  "departamento": "Cundinamarca",
+  "pais": "Colombia",
+  "telefono": "+57 300 123 4567",
+  "whatsapp": "+57 300 123 4567",
+  "email": "contacto@imprentaxyz.com",
+  "instagram": "@imprentaxyz",
+  "facebook": "facebook.com/imprentaxyz",
+  "sitio_web": "https://imprentaxyz.com",
+  "direccion": "Calle 123 # 45-67, Bogotá",
+  "horario_atencion": {
+    "lunes_viernes": "9:00 am - 6:00 pm",
+    "sabados": "9:00 am - 1:00 pm",
+    "domingos": "Cerrado"
+  },
+  "nota_precios": "Los precios no incluyen diseño gráfico ni envío",
+  "tiempo_entrega_default": "3-5 días hábiles",
+  "moneda": "COP",
+  "categorias": {
+    "tarjetas": {
+      "nombre": "Tarjetas de Presentación",
+      "tipo_cotizacion": "cantidad",
+      "unidad_base": 1000,
+      "tipos": [
+        {
+          "id": "sencilla_uv",
+          "nombre": "Sencilla Brillo UV",
+          "descripcion": "Papel couche 300gr con barniz UV",
+          "precio_1000": 85000,
+          "precio_2000": 160000,
+          "precio_5000": 375000
+        },
+        {
+          "id": "mate_laminado",
+          "nombre": "Mate con Laminado",
+          "descripcion": "Acabado mate elegante con protección",
+          "precio_1000": 135000,
+          "precio_2000": 255000,
+          "precio_5000": 600000
+        }
+      ]
+    },
+    "volantes": {
+      "nombre": "Volantes y Flyers",
+      "tipo_cotizacion": "cantidad",
+      "unidad_base": 1000,
+      "tipos": [
+        {
+          "id": "volante_14",
+          "nombre": "1/4 de carta (1 cara)",
+          "tamano": "10.7x13.9 cm",
+          "precio_1000": 65000,
+          "precio_5000": 280000
+        },
+        {
+          "id": "volante_carta",
+          "nombre": "Tamaño carta (1 cara)",
+          "tamano": "21.6x27.9 cm",
+          "precio_1000": 145000,
+          "precio_5000": 625000
+        }
+      ]
+    },
+    "banners": {
+      "nombre": "Banners y Pendones",
+      "tipo_cotizacion": "medida",
+      "unidad": "m2",
+      "tipos": [
+        {
+          "id": "banner_premium",
+          "nombre": "Banner Premium con ojales",
+          "precio_m2": 45000,
+          "descripcion": "Lona frontlit 13oz con ojales cada 50cm"
+        },
+        {
+          "id": "banner_economico",
+          "nombre": "Banner Económico",
+          "precio_m2": 35000,
+          "descripcion": "Lona frontlit 10oz con ojales"
+        }
+      ]
+    },
+    "stickers": {
+      "nombre": "Stickers y Etiquetas",
+      "tipo_cotizacion": "cantidad",
+      "unidad_base": 100,
+      "tipos": [
+        {
+          "id": "sticker_vinil",
+          "nombre": "Sticker Vinil Brillante",
+          "descripcion": "Resistente al agua y sol",
+          "precio_100": 25000,
+          "precio_500": 95000,
+          "precio_1000": 170000
+        }
+      ]
+    }
+  },
+  "descuentos": {
+    "por_volumen": [
+      {"min": 5000, "descuento": 0.10},
+      {"min": 10000, "descuento": 0.15}
+    ],
+    "clientes_recurrentes": 0.05
+  },
+  "servicios_adicionales": [
+    {
+      "nombre": "Diseño Gráfico",
+      "precio_hora": 50000,
+      "descripcion": "Diseño profesional por hora"
+    },
+    {
+      "nombre": "Entrega a Domicilio",
+      "precio": 15000,
+      "descripcion": "Dentro de Bogotá"
+    }
+  ],
+  "metodos_pago": [
+    "Transferencia bancaria",
+    "Nequi",
+    "Daviplata",
+    "Efectivo"
+  ],
+  "politicas": {
+    "anticipo_minimo": 0.50,
+    "revisiones_diseno": 2,
+    "garantia": "Por defectos de impresión"
+  }
+}

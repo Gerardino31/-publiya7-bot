@@ -1,0 +1,21 @@
+{
+  "apps": [
+    {
+      "name": "bot-publiya7",
+      "script": "main.py",
+      "interpreter": "python",
+      "instances": 1,
+      "autorestart": true,
+      "watch": false,
+      "max_memory_restart": "500M",
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "log_file": "logs/pm2-combined.log",
+      "out_file": "logs/pm2-out.log",
+      "error_file": "logs/pm2-error.log",
+      "time": true,
+      "restart_delay": 3000
+    }
+  ]
+}
