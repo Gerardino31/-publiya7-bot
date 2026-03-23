@@ -3,7 +3,7 @@ fastapi>=0.100.0
 uvicorn>=0.23.0
 
 # Base de datos
-sqlite3-python
+
 
 # Utilidades
 python-dotenv>=1.0.0
