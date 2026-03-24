@@ -163,9 +163,6 @@ class BotAutoDetect:
 
 ¿En qué podemos ayudarte hoy?"""
                 
-                # Agregar menú
-                respuesta_bienvenida += "\n\n" + router.generar_menu_principal().split('\n\n')[1]
-                
                 # Guardar estado inicial
                 db.guardar_estado(cliente_id, user_id, {
                     'paso': 0,
