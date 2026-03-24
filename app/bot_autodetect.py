@@ -113,18 +113,18 @@ class BotAutoDetect:
                          canal: str = 'whatsapp') -> Dict:
         """
         Procesa un mensaje detectando automáticamente el cliente.
+        Si no encuentra el cliente, usa 'publiya7' como cliente por defecto.
         """
         # Detectar cliente
         cliente = self.detectar_cliente(identificador, codigo, canal)
         
+        # Si no se encuentra cliente, usar publiya7 como default
         if not cliente:
-            logger.warning(f"Cliente no encontrado para identificador: {identificador}")
-            return {
-                'texto': "⚠️ Este número no está registrado en nuestro sistema. "
-                        "Por favor contacte al administrador.",
-                'tipo': 'error',
-                'error': True,
-                'cliente_detectado': False
+            logger.warning(f"Cliente no encontrado para identificador: {identificador}. Usando publiya7 por defecto.")
+            cliente = {
+                'cliente_id': 'publiya7',
+                'nombre': 'Publiya7',
+                'whatsapp': identificador or 'default'
             }
         
         cliente_id = cliente['cliente_id']

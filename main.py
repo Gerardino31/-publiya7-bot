@@ -5,6 +5,7 @@ main.py - Servidor FastAPI para recibir webhooks de WhatsApp
 import os
 import sys
 import logging
+import requests
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 import json
@@ -15,6 +16,52 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Configuración de WhatsApp API
+WHATSAPP_API_URL = "https://graph.facebook.com/v18.0"
+WHATSAPP_ACCESS_TOKEN = 'EAAU4ZAgdX7hEBRISQi4MmI6uPgxOxo5L8xZBPtqUdg8TlKeucC5RzcUl4PJHXmMZC3kg56mIxXs93lXdi5QYs3sPYmZAfCNxaHZAL9r0D4XPKolXjgXSZAmJUOWfXC784Ldgk8xWqYjOA9WIC8PkmZAeN6Hu2kau5awwxwxjONCjMdPnXDr0GBiBEplAQxxAosTOel9HSTIzkwXUc8dGCJhiToCi77Jp7UVrJ0kE0ouRoSjPepeL3Kwpk2E8LZBdovTMFpbZAmoAyk3rZBgGx622vxdvEZD'
+WHATSAPP_PHONE_NUMBER_ID = '1033575916505556'
+
+def enviar_mensaje_whatsapp(numero_destino: str, mensaje: str) -> bool:
+    """
+    Envía un mensaje de WhatsApp usando la API de Meta.
+    """
+    try:
+        # Limpiar número (quitar el + si existe)
+        if numero_destino.startswith('+'):
+            numero_destino = numero_destino[1:]
+        
+        url = f"{WHATSAPP_API_URL}/{WHATSAPP_PHONE_NUMBER_ID}/messages"
+        
+        headers = {
+            "Authorization": f"Bearer {WHATSAPP_ACCESS_TOKEN}",
+            "Content-Type": "application/json"
+        }
+        
+        data = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": numero_destino,
+            "type": "text",
+            "text": {
+                "body": mensaje
+            }
+        }
+        
+        logger.info(f"Enviando mensaje a {numero_destino}: {mensaje[:50]}...")
+        
+        response = requests.post(url, headers=headers, json=data)
+        
+        if response.status_code == 200:
+            logger.info(f"Mensaje enviado exitosamente a {numero_destino}")
+            return True
+        else:
+            logger.error(f"Error enviando mensaje: {response.status_code} - {response.text}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"Error en enviar_mensaje_whatsapp: {e}", exc_info=True)
+        return False
 
 # Crear aplicación FastAPI
 app = FastAPI(title="Publiya7 Bot", version="1.0.0")
@@ -114,9 +161,18 @@ async def receive_webhook(request: Request):
         
         logger.info(f"Respuesta del bot: {respuesta}")
         
+        # Enviar respuesta de vuelta a WhatsApp
+        mensaje_respuesta = respuesta.get('texto', '')
+        if mensaje_respuesta:
+            enviado = enviar_mensaje_whatsapp(from_number, mensaje_respuesta)
+            if enviado:
+                logger.info(f"Respuesta enviada a {from_number}")
+            else:
+                logger.error(f"No se pudo enviar respuesta a {from_number}")
+        
         return JSONResponse(content={
             "status": "processed",
-            "respuesta": respuesta.get('texto', '')
+            "respuesta": mensaje_respuesta
         })
         
     except Exception as e:
