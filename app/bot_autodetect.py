@@ -155,13 +155,16 @@ class BotAutoDetect:
                 nombre_negocio = config.get('nombre', 'nuestro negocio')
                 eslogan = config.get('eslogan', '')
                 
+                # Generar menú principal
+                menu_principal = router.generar_menu_principal()
+                
                 respuesta_bienvenida = f"""👋 ¡Bienvenido a {nombre_negocio}!
 
 {eslogan}
 
 {router._frase_cortesia('general')}
 
-¿En qué podemos ayudarte hoy?"""
+{menu_principal}"""
                 
                 # Guardar estado inicial
                 db.guardar_estado(cliente_id, user_id, {
