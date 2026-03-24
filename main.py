@@ -24,6 +24,14 @@ TWILIO_WHATSAPP_NUMBER = 'whatsapp:+14155238886'
 # Crear aplicación FastAPI
 app = FastAPI(title="BotlyPro Bot", version="1.0.0")
 
+# Importar y registrar panel de administración
+try:
+    from admin.admin_panel import admin_router
+    app.include_router(admin_router)
+    logger.info("✅ Panel de administración cargado")
+except Exception as e:
+    logger.error(f"❌ Error cargando panel de administración: {e}")
+
 @app.get("/")
 async def root():
     """Endpoint raíz para verificar que el servicio está funcionando."""
