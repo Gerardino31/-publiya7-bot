@@ -29,13 +29,13 @@ LOGIN_HTML = """
     <meta charset="UTF-8">
     <title>Login - BotlyPro Admin</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #667eea; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); width: 300px; }
-        h1 { color: #667eea; text-align: center; margin-bottom: 30px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
-        button:hover { background: #5568d3; }
-        .error { color: red; text-align: center; margin-bottom: 15px; }
+        body {{ font-family: Arial, sans-serif; background: #667eea; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }}
+        .container {{ background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); width: 300px; }}
+        h1 {{ color: #667eea; text-align: center; margin-bottom: 30px; }}
+        input {{ width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }}
+        button {{ width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }}
+        button:hover {{ background: #5568d3; }}
+        .error {{ color: red; text-align: center; margin-bottom: 15px; }}
     </style>
 </head>
 <body>
@@ -61,17 +61,17 @@ DASHBOARD_HTML = """
     <meta charset="UTF-8">
     <title>Dashboard - BotlyPro</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; background: #f5f7fa; }
-        .sidebar { width: 250px; background: #2d3748; height: 100vh; position: fixed; color: white; padding: 20px; }
-        .sidebar h2 { color: #667eea; }
-        .sidebar a { display: block; color: #cbd5e0; text-decoration: none; padding: 10px; margin: 5px 0; border-radius: 5px; }
-        .sidebar a:hover { background: #667eea; color: white; }
-        .main { margin-left: 290px; padding: 30px; }
-        .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-        th { background: #667eea; color: white; }
-        .btn { background: #667eea; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px; }
+        body {{ font-family: Arial, sans-serif; margin: 0; background: #f5f7fa; }}
+        .sidebar {{ width: 250px; background: #2d3748; height: 100vh; position: fixed; color: white; padding: 20px; }}
+        .sidebar h2 {{ color: #667eea; }}
+        .sidebar a {{ display: block; color: #cbd5e0; text-decoration: none; padding: 10px; margin: 5px 0; border-radius: 5px; }}
+        .sidebar a:hover {{ background: #667eea; color: white; }}
+        .main {{ margin-left: 290px; padding: 30px; }}
+        .card {{ background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+        table {{ width: 100%; border-collapse: collapse; }}
+        th, td {{ padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }}
+        th {{ background: #667eea; color: white; }}
+        .btn {{ background: #667eea; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px; }}
     </style>
 </head>
 <body>
