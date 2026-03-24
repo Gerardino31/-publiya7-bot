@@ -15,12 +15,14 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import json
+from pathlib import Path
 
 # Crear router para el panel
 admin_router = APIRouter(prefix="/admin", tags=["admin"])
 
-# Configurar templates
-templates = Jinja2Templates(directory="admin/templates")
+# Configurar templates - usar path absoluto
+BASE_DIR = Path(__file__).parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 # Usuario y contraseña del panel (temporal - luego en BD)
 ADMIN_USER = "admin"
