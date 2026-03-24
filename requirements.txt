@@ -9,6 +9,9 @@ uvicorn>=0.23.0
 python-dotenv>=1.0.0
 requests>=2.31.0
 
+# Twilio para WhatsApp
+twilio>=8.0.0
+
 # Logging (ya incluido en Python)
 # logging
 
