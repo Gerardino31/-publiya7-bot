@@ -142,6 +142,58 @@ async def admin_clientes(request: Request):
     """Lista de clientes"""
     return RedirectResponse(url="/admin/dashboard")
 
+@admin_router.get("/cliente/{cliente_id}", response_class=HTMLResponse)
+async def ver_cliente(request: Request, cliente_id: str):
+    """Ver detalles de un cliente"""
+    config_path = Path(f"clientes/configs/{cliente_id}.json")
+    
+    if not config_path.exists():
+        return HTMLResponse(content="<h1>Cliente no encontrado</h1><a href='/admin/dashboard'>Volver</a>")
+    
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+    
+    # Generar HTML de configuración
+    config_html = json.dumps(config, indent=2, ensure_ascii=False)
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Cliente {cliente_id} - BotlyPro</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 0; background: #f5f7fa; }}
+            .sidebar {{ width: 250px; background: #2d3748; height: 100vh; position: fixed; color: white; padding: 20px; }}
+            .sidebar h2 {{ color: #667eea; }}
+            .sidebar a {{ display: block; color: #cbd5e0; text-decoration: none; padding: 10px; margin: 5px 0; border-radius: 5px; }}
+            .sidebar a:hover {{ background: #667eea; color: white; }}
+            .main {{ margin-left: 290px; padding: 30px; }}
+            .card {{ background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+            pre {{ background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }}
+            .btn {{ background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px; }}
+        </style>
+    </head>
+    <body>
+        <div class="sidebar">
+            <h2>🤖 BotlyPro</h2>
+            <a href="/admin/dashboard">📊 Dashboard</a>
+            <a href="/admin/clientes">👥 Clientes</a>
+            <a href="/admin/conversaciones">💬 Conversaciones</a>
+        </div>
+        <div class="main">
+            <h1>Cliente: {config.get('nombre', cliente_id)}</h1>
+            <div class="card">
+                <h3>Configuración</h3>
+                <pre>{config_html}</pre>
+                <a href="/admin/dashboard" class="btn">Volver al Dashboard</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
+
 @admin_router.get("/conversaciones", response_class=HTMLResponse)
 async def admin_conversaciones(request: Request):
     """Ver conversaciones"""
