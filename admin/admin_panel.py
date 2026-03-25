@@ -318,12 +318,12 @@ async def guardar_cliente(
     categoria_4: str = Form(""),
     frase_general: str = Form(""),
     frase_despedida: str = Form(""),
-    precio_0: int = Form(0),
-    precio_1: int = Form(0),
-    precio_2: int = Form(0),
-    precio_3: int = Form(0),
-    precio_4: int = Form(0),
-    precio_5: int = Form(0),
+    precio_0: int = Form(None),
+    precio_1: int = Form(None),
+    precio_2: int = Form(None),
+    precio_3: int = Form(None),
+    precio_4: int = Form(None),
+    precio_5: int = Form(None),
     faq_horario: str = Form(""),
     faq_ubicacion: str = Form(""),
     faq_error: str = Form(""),
@@ -365,11 +365,14 @@ async def guardar_cliente(
             # Mantener productos existentes y actualizar precios
             productos = []
             if i < len(config.get('categorias', [])):
-                for j, prod in enumerate(config['categorias'][i].get('productos', [])[:2]):
-                    if precio_idx < len(precios_nuevos) and precios_nuevos[precio_idx] > 0:
-                        prod['precio_base'] = precios_nuevos[precio_idx]
-                    productos.append(prod)
-                    precio_idx += 1
+                cat_existente = config['categorias'][i]
+                if isinstance(cat_existente, dict):
+                    for j, prod in enumerate(cat_existente.get('productos', [])[:2]):
+                        if isinstance(prod, dict):
+                            if precio_idx < len(precios_nuevos) and precios_nuevos[precio_idx] is not None and precios_nuevos[precio_idx] > 0:
+                                prod['precio_base'] = precios_nuevos[precio_idx]
+                            productos.append(prod)
+                            precio_idx += 1
             nuevas_categorias.append({
                 'id': f'cat_{i+1}',
                 'nombre': cat_nombre,
