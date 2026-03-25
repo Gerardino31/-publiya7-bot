@@ -113,6 +113,12 @@ async def ver_cliente(cliente_id: str):
     frase_general = frases.get('general', '¡Gracias por contactarnos!')
     frase_despedida = frases.get('despedida', '¡Que tengas un excelente día!')
     
+    # FAQ
+    faq = config.get('faq', {})
+    faq_horario = faq.get('horario', 'Lunes a Viernes 8am - 6pm')
+    faq_ubicacion = faq.get('ubicacion', 'Consultar dirección')
+    faq_error = faq.get('no_entendi', 'Lo siento, no entendí. ¿Podrías reformularlo?')
+    
     html = f"""
     <!DOCTYPE html>
     <html>
@@ -158,6 +164,20 @@ async def ver_cliente(cliente_id: str):
                     <label style="display: block; font-weight: bold;">Frase de Despedida:</label>
                     <input type="text" name="frase_despedida" value="{frase_despedida}" style="padding: 8px; width: 300px;">
                 </div>
+                <hr style="margin: 20px 0;">
+                <h3 style="color: #667eea;">❓ Respuestas Automáticas (FAQ)</h3>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-weight: bold;">Respuesta a "horario":</label>
+                    <input type="text" name="faq_horario" value="{faq_horario}" style="padding: 8px; width: 300px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-weight: bold;">Respuesta a "ubicación":</label>
+                    <input type="text" name="faq_ubicacion" value="{faq_ubicacion}" style="padding: 8px; width: 300px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-weight: bold;">Mensaje cuando no entiende:</label>
+                    <input type="text" name="faq_error" value="{faq_error}" style="padding: 8px; width: 300px;">
+                </div>
                 <button type="submit" style="background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Guardar</button>
                 <a href="/admin/dashboard" style="background: #718096; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-left: 10px;">Volver</a>
             </form>
@@ -168,7 +188,7 @@ async def ver_cliente(cliente_id: str):
     return HTMLResponse(content=html)
 
 @router.post("/cliente/{cliente_id}/guardar")
-async def guardar_cliente(cliente_id: str, nombre: str = Form(...), telefono: str = Form(""), email: str = Form(""), eslogan: str = Form(""), bienvenida: str = Form(""), despedida: str = Form(""), frase_general: str = Form(""), frase_despedida: str = Form("")):
+async def guardar_cliente(cliente_id: str, nombre: str = Form(...), telefono: str = Form(""), email: str = Form(""), eslogan: str = Form(""), bienvenida: str = Form(""), despedida: str = Form(""), frase_general: str = Form(""), frase_despedida: str = Form(""), faq_horario: str = Form(""), faq_ubicacion: str = Form(""), faq_error: str = Form("")):
     config_path = Path(f"clientes/configs/{cliente_id}.json")
     
     if not config_path.exists():
@@ -193,6 +213,13 @@ async def guardar_cliente(cliente_id: str, nombre: str = Form(...), telefono: st
         config['frases_cortesia'] = {}
     config['frases_cortesia']['general'] = frase_general
     config['frases_cortesia']['despedida'] = frase_despedida
+    
+    # Guardar FAQ
+    if 'faq' not in config:
+        config['faq'] = {}
+    config['faq']['horario'] = faq_horario
+    config['faq']['ubicacion'] = faq_ubicacion
+    config['faq']['no_entendi'] = faq_error
     
     with open(config_path, 'w', encoding='utf-8') as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
