@@ -125,10 +125,16 @@ async def admin_dashboard(request: Request):
                 config = json.load(f)
                 clientes.append(config)
     
-    # Generar filas de la tabla
+    # Generar filas de la tabla (solo clientes con ID válido)
     rows = ""
     for c in clientes:
-        rows += f"<tr><td>{c.get('cliente_id', '')}</td><td>{c.get('nombre', '')}</td><td>{c.get('telefono', '')}</td><td><a href='/admin/cliente/{c.get('cliente_id')}' class='btn'>Ver</a></td></tr>"
+        cliente_id = c.get('cliente_id', '')
+        nombre = c.get('nombre', c.get('nombre_empresa', 'Sin nombre'))
+        telefono = c.get('telefono', 'N/A')
+        
+        # Solo mostrar si tiene cliente_id
+        if cliente_id:
+            rows += f"<tr><td>{cliente_id}</td><td>{nombre}</td><td>{telefono}</td><td><a href='/admin/cliente/{cliente_id}' class='btn'>Ver</a></td></tr>"
     
     html = DASHBOARD_HTML.format(
         total_clientes=len(clientes),
