@@ -314,14 +314,15 @@ async def guardar_cliente(
     faq_error: str = Form(""),
 ):
     """Guardar cambios de un cliente"""
-    config_path = Path(f"clientes/configs/{cliente_id}.json")
-    
-    if not config_path.exists():
-        return HTMLResponse(content="<h1>Cliente no encontrado</h1><a href='/admin/dashboard'>Volver</a>")
-    
-    # Leer configuración actual
-    with open(config_path, 'r', encoding='utf-8') as f:
-        config = json.load(f)
+    try:
+        config_path = Path(f"clientes/configs/{cliente_id}.json")
+        
+        if not config_path.exists():
+            return HTMLResponse(content="<h1>Cliente no encontrado</h1><a href='/admin/dashboard'>Volver</a>")
+        
+        # Leer configuración actual
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
     
     # Actualizar campos básicos
     config['nombre'] = nombre
@@ -370,7 +371,11 @@ async def guardar_cliente(
         json.dump(config, f, indent=2, ensure_ascii=False)
     
     # Redirigir con mensaje de éxito
-    return RedirectResponse(url=f"/admin/cliente/{cliente_id}?success=1", status_code=302)
+        return RedirectResponse(url=f"/admin/cliente/{cliente_id}?success=1", status_code=302)
+    except Exception as e:
+        import traceback
+        error_msg = f"Error: {str(e)}<br><pre>{traceback.format_exc()}</pre>"
+        return HTMLResponse(content=f"<h1>Error al guardar</h1><p>{error_msg}</p><a href='/admin/cliente/{cliente_id}'>Volver</a>")
 
 @admin_router.get("/conversaciones", response_class=HTMLResponse)
 async def admin_conversaciones(request: Request):
