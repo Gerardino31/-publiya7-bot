@@ -333,61 +333,61 @@ async def guardar_cliente(
         # Leer configuración actual
         with open(config_path, 'r', encoding='utf-8') as f:
             config = json.load(f)
-    
-    # Actualizar campos básicos
-    config['nombre'] = nombre
-    config['telefono'] = telefono
-    config['email'] = email
-    config['eslogan'] = eslogan
-    
-    # Actualizar mensajes del bot
-    if 'mensajes' not in config:
-        config['mensajes'] = {}
-    config['mensajes']['bienvenida'] = bienvenida
-    config['mensajes']['despedida'] = despedida
-    
-    # Actualizar frases de cortesía
-    if 'frases_cortesia' not in config:
-        config['frases_cortesia'] = {}
-    config['frases_cortesia']['general'] = frase_general
-    config['frases_cortesia']['despedida'] = frase_despedida
-    
-    # Actualizar categorías (manejar como diccionario)
-    categorias_dict = config.get('categorias', {})
-    if not isinstance(categorias_dict, dict):
-        categorias_dict = {}
-    
-    # Obtener IDs de categorías del formulario
-    cat_ids = [categoria_id_0, categoria_id_1, categoria_id_2, categoria_id_3, categoria_id_4]
-    cat_nombres = [categoria_0, categoria_1, categoria_2, categoria_3, categoria_4]
-    
-    for i, (cat_id, cat_nombre) in enumerate(zip(cat_ids, cat_nombres)):
-        if cat_nombre.strip() and cat_id:
-            # Si existe la categoría, actualizar nombre
-            if cat_id in categorias_dict:
-                if isinstance(categorias_dict[cat_id], dict):
-                    categorias_dict[cat_id]['nombre'] = cat_nombre
-            else:
-                # Crear nueva categoría
-                categorias_dict[f'cat_nueva_{i}'] = {
-                    'nombre': cat_nombre,
-                    'tipos': []
-                }
-    
-    config['categorias'] = categorias_dict
-    
-    # Actualizar FAQ
-    if 'faq' not in config:
-        config['faq'] = {}
-    config['faq']['horario'] = faq_horario
-    config['faq']['ubicacion'] = faq_ubicacion
-    config['faq']['no_entendi'] = faq_error
-    
-    # Guardar
-    with open(config_path, 'w', encoding='utf-8') as f:
-        json.dump(config, f, indent=2, ensure_ascii=False)
-    
-    # Redirigir con mensaje de éxito
+        
+        # Actualizar campos básicos
+        config['nombre'] = nombre
+        config['telefono'] = telefono
+        config['email'] = email
+        config['eslogan'] = eslogan
+        
+        # Actualizar mensajes del bot
+        if 'mensajes' not in config:
+            config['mensajes'] = {}
+        config['mensajes']['bienvenida'] = bienvenida
+        config['mensajes']['despedida'] = despedida
+        
+        # Actualizar frases de cortesía
+        if 'frases_cortesia' not in config:
+            config['frases_cortesia'] = {}
+        config['frases_cortesia']['general'] = frase_general
+        config['frases_cortesia']['despedida'] = frase_despedida
+        
+        # Actualizar categorías (manejar como diccionario)
+        categorias_dict = config.get('categorias', {})
+        if not isinstance(categorias_dict, dict):
+            categorias_dict = {}
+        
+        # Obtener IDs de categorías del formulario
+        cat_ids = [categoria_id_0, categoria_id_1, categoria_id_2, categoria_id_3, categoria_id_4]
+        cat_nombres = [categoria_0, categoria_1, categoria_2, categoria_3, categoria_4]
+        
+        for i, (cat_id, cat_nombre) in enumerate(zip(cat_ids, cat_nombres)):
+            if cat_nombre.strip() and cat_id:
+                # Si existe la categoría, actualizar nombre
+                if cat_id in categorias_dict:
+                    if isinstance(categorias_dict[cat_id], dict):
+                        categorias_dict[cat_id]['nombre'] = cat_nombre
+                else:
+                    # Crear nueva categoría
+                    categorias_dict[f'cat_nueva_{i}'] = {
+                        'nombre': cat_nombre,
+                        'tipos': []
+                    }
+        
+        config['categorias'] = categorias_dict
+        
+        # Actualizar FAQ
+        if 'faq' not in config:
+            config['faq'] = {}
+        config['faq']['horario'] = faq_horario
+        config['faq']['ubicacion'] = faq_ubicacion
+        config['faq']['no_entendi'] = faq_error
+        
+        # Guardar
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        
+        # Redirigir con mensaje de éxito
         return RedirectResponse(url=f"/admin/cliente/{cliente_id}?success=1", status_code=302)
     except Exception as e:
         import traceback
