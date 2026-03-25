@@ -257,23 +257,30 @@ async def ver_productos(cliente_id: str):
     nombre = config.get('nombre', 'Sin nombre')
     categorias_dict = config.get('categorias', {})
     
-    # Generar HTML de categorías y productos
-    cats_html = ""
+    # Generar formulario de categorías y productos
+    form_html = ""
+    prod_idx = 0
     if isinstance(categorias_dict, dict):
         for cat_key, cat_data in categorias_dict.items():
             if isinstance(cat_data, dict):
                 cat_nombre = cat_data.get('nombre', cat_key)
-                cats_html += f"<h3 style='color: #667eea; margin-top: 20px;'>📦 {cat_nombre}</h3><ul>"
+                form_html += f"<h3 style='color: #667eea; margin-top: 20px;'>📦 {cat_nombre}</h3>"
                 
-                # Mostrar productos
+                # Mostrar productos editables
                 tipos = cat_data.get('tipos', [])
                 for tipo in tipos[:3]:  # Máximo 3 productos por categoría
                     if isinstance(tipo, dict):
+                        prod_id = tipo.get('id', f'prod_{prod_idx}')
                         prod_nombre = tipo.get('nombre', 'Sin nombre')
                         precio_1000 = tipo.get('precio_1000', 0)
-                        cats_html += f"<li>{prod_nombre}: ${precio_1000:,} (1000 unid)</li>"
-                
-                cats_html += "</ul>"
+                        form_html += f"""
+                        <div style="margin-bottom: 10px; padding: 10px; background: #f7fafc; border-radius: 5px;">
+                            <label style="font-weight: bold;">{prod_nombre}</label><br>
+                            <input type="hidden" name="prod_id_{prod_idx}" value="{cat_key}|{prod_id}">
+                            Precio 1000 unid: $<input type="number" name="precio_{prod_idx}" value="{precio_1000}" style="padding: 5px; width: 100px;">
+                        </div>
+                        """
+                        prod_idx += 1
     
     html = f"""
     <!DOCTYPE html>
@@ -284,15 +291,62 @@ async def ver_productos(cliente_id: str):
             <h2>🤖 BotlyPro</h2>
         </div>
         <div style="padding: 30px;">
-            <h1>Productos y Precios: {nombre}</h1>
+            <h1>Editar Productos y Precios: {nombre}</h1>
             <a href="/admin/cliente/{cliente_id}" style="background: #718096; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">← Volver al Cliente</a>
             <hr style="margin: 20px 0;">
-            {cats_html}
-            <p style="color: #666; margin-top: 30px;">* Edición de precios próximamente</p>
+            <form method="POST" action="/admin/cliente/{cliente_id}/productos/guardar">
+                {form_html}
+                <button type="submit" style="background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px;">Guardar Precios</button>
+            </form>
         </div>
     </body>
     </html>
     """
     return HTMLResponse(content=html)
+
+@router.post("/cliente/{cliente_id}/productos/guardar")
+async def guardar_productos(
+    request: Request,
+    cliente_id: str,
+    prod_id_0: str = Form(""),
+    prod_id_1: str = Form(""),
+    prod_id_2: str = Form(""),
+    prod_id_3: str = Form(""),
+    prod_id_4: str = Form(""),
+    prod_id_5: str = Form(""),
+    precio_0: int = Form(0),
+    precio_1: int = Form(0),
+    precio_2: int = Form(0),
+    precio_3: int = Form(0),
+    precio_4: int = Form(0),
+    precio_5: int = Form(0),
+):
+    config_path = Path(f"clientes/configs/{cliente_id}.json")
+    
+    if not config_path.exists():
+        return HTMLResponse(content="<h1>Cliente no encontrado</h1>")
+    
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+    
+    # Actualizar precios
+    prod_ids = [prod_id_0, prod_id_1, prod_id_2, prod_id_3, prod_id_4, prod_id_5]
+    precios = [precio_0, precio_1, precio_2, precio_3, precio_4, precio_5]
+    
+    for prod_id_str, nuevo_precio in zip(prod_ids, precios):
+        if prod_id_str and "|" in prod_id_str:
+            cat_key, prod_id = prod_id_str.split("|")
+            if cat_key in config.get('categorias', {}):
+                cat_data = config['categorias'][cat_key]
+                if isinstance(cat_data, dict):
+                    for tipo in cat_data.get('tipos', []):
+                        if isinstance(tipo, dict) and tipo.get('id') == prod_id:
+                            tipo['precio_1000'] = nuevo_precio
+                            break
+    
+    with open(config_path, 'w', encoding='utf-8') as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+    
+    return RedirectResponse(url=f"/admin/cliente/{cliente_id}/productos", status_code=302)
 
 print("✅ Panel simple cargado")
