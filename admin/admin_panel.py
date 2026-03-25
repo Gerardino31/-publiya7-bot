@@ -165,6 +165,11 @@ async def ver_cliente(request: Request, cliente_id: str):
     email = config.get('email', '')
     eslogan = config.get('eslogan', '')
     
+    # Mensajes del bot
+    mensajes = config.get('mensajes', {})
+    bienvenida = mensajes.get('bienvenida', '')
+    despedida = mensajes.get('despedida', '')
+    
     html = f"""
     <!DOCTYPE html>
     <html>
@@ -214,6 +219,14 @@ async def ver_cliente(request: Request, cliente_id: str):
                         <label>Eslogan</label>
                         <input type="text" name="eslogan" value="{eslogan}">
                     </div>
+                    <div class="form-group">
+                        <label>Mensaje de Bienvenida del Bot</label>
+                        <input type="text" name="bienvenida" value="{bienvenida}" placeholder="Ej: ¡Hola! Bienvenido a nuestra imprenta...">
+                    </div>
+                    <div class="form-group">
+                        <label>Mensaje de Despedida del Bot</label>
+                        <input type="text" name="despedida" value="{despedida}" placeholder="Ej: Gracias por contactarnos. ¡Hasta pronto!">
+                    </div>
                     <button type="submit" class="btn">Guardar Cambios</button>
                     <a href="/admin/dashboard" class="btn btn-secondary">Cancelar</a>
                 </form>
@@ -225,7 +238,7 @@ async def ver_cliente(request: Request, cliente_id: str):
     return HTMLResponse(content=html)
 
 @admin_router.post("/cliente/{cliente_id}/guardar")
-async def guardar_cliente(request: Request, cliente_id: str, nombre: str = Form(...), telefono: str = Form(""), email: str = Form(""), eslogan: str = Form("")):
+async def guardar_cliente(request: Request, cliente_id: str, nombre: str = Form(...), telefono: str = Form(""), email: str = Form(""), eslogan: str = Form(""), bienvenida: str = Form(""), despedida: str = Form("")):
     """Guardar cambios de un cliente"""
     config_path = Path(f"clientes/configs/{cliente_id}.json")
     
@@ -236,11 +249,17 @@ async def guardar_cliente(request: Request, cliente_id: str, nombre: str = Form(
     with open(config_path, 'r', encoding='utf-8') as f:
         config = json.load(f)
     
-    # Actualizar campos
+    # Actualizar campos básicos
     config['nombre'] = nombre
     config['telefono'] = telefono
     config['email'] = email
     config['eslogan'] = eslogan
+    
+    # Actualizar mensajes del bot
+    if 'mensajes' not in config:
+        config['mensajes'] = {}
+    config['mensajes']['bienvenida'] = bienvenida
+    config['mensajes']['despedida'] = despedida
     
     # Guardar
     with open(config_path, 'w', encoding='utf-8') as f:
