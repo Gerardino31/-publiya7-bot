@@ -170,6 +170,13 @@ async def ver_cliente(request: Request, cliente_id: str):
     bienvenida = mensajes.get('bienvenida', '')
     despedida = mensajes.get('despedida', '')
     
+    # Productos (categorías principales)
+    categorias = config.get('categorias', [])
+    productos_html = ""
+    for i, cat in enumerate(categorias[:5]):  # Mostrar máximo 5 categorías
+        nombre_cat = cat.get('nombre', '')
+        productos_html += f'<div class="form-group"><label>Categoría {i+1}</label><input type="text" name="categoria_{i}" value="{nombre_cat}"></div>'
+    
     html = f"""
     <!DOCTYPE html>
     <html>
@@ -227,6 +234,9 @@ async def ver_cliente(request: Request, cliente_id: str):
                         <label>Mensaje de Despedida del Bot</label>
                         <input type="text" name="despedida" value="{despedida}" placeholder="Ej: Gracias por contactarnos. ¡Hasta pronto!">
                     </div>
+                    <hr style="margin: 20px 0;">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">📦 Categorías de Productos</h3>
+                    {productos_html}
                     <button type="submit" class="btn">Guardar Cambios</button>
                     <a href="/admin/dashboard" class="btn btn-secondary">Cancelar</a>
                 </form>
@@ -238,7 +248,7 @@ async def ver_cliente(request: Request, cliente_id: str):
     return HTMLResponse(content=html)
 
 @admin_router.post("/cliente/{cliente_id}/guardar")
-async def guardar_cliente(request: Request, cliente_id: str, nombre: str = Form(...), telefono: str = Form(""), email: str = Form(""), eslogan: str = Form(""), bienvenida: str = Form(""), despedida: str = Form("")):
+async def guardar_cliente(request: Request, cliente_id: str, nombre: str = Form(...), telefono: str = Form(""), email: str = Form(""), eslogan: str = Form(""), bienvenida: str = Form(""), despedida: str = Form(""), categoria_0: str = Form(""), categoria_1: str = Form(""), categoria_2: str = Form(""), categoria_3: str = Form(""), categoria_4: str = Form("")):
     """Guardar cambios de un cliente"""
     config_path = Path(f"clientes/configs/{cliente_id}.json")
     
@@ -260,6 +270,21 @@ async def guardar_cliente(request: Request, cliente_id: str, nombre: str = Form(
         config['mensajes'] = {}
     config['mensajes']['bienvenida'] = bienvenida
     config['mensajes']['despedida'] = despedida
+    
+    # Actualizar categorías
+    nuevas_categorias = []
+    for i, cat_nombre in enumerate([categoria_0, categoria_1, categoria_2, categoria_3, categoria_4]):
+        if cat_nombre.strip():
+            # Mantener productos existentes si hay
+            productos_existentes = []
+            if i < len(config.get('categorias', [])):
+                productos_existentes = config['categorias'][i].get('productos', [])
+            nuevas_categorias.append({
+                'id': f'cat_{i+1}',
+                'nombre': cat_nombre,
+                'productos': productos_existentes
+            })
+    config['categorias'] = nuevas_categorias
     
     # Guardar
     with open(config_path, 'w', encoding='utf-8') as f:
