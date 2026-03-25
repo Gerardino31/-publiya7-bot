@@ -170,18 +170,23 @@ async def ver_cliente(request: Request, cliente_id: str):
     bienvenida = mensajes.get('bienvenida', '')
     despedida = mensajes.get('despedida', '')
     
-    # Productos (categorías principales)
-    categorias = config.get('categorias', [])
-    # Asegurar que categorias sea una lista
-    if isinstance(categorias, dict):
-        categorias = list(categorias.values())
-    if not isinstance(categorias, list):
-        categorias = []
+    # Productos (categorías principales) - Manejar como diccionario
+    categorias_dict = config.get('categorias', {})
+    if isinstance(categorias_dict, dict):
+        # Convertir diccionario a lista para mostrar
+        categorias_list = []
+        for cat_key, cat_data in categorias_dict.items():
+            if isinstance(cat_data, dict):
+                cat_data['id'] = cat_key
+                categorias_list.append(cat_data)
+    else:
+        categorias_list = []
     
     productos_html = ""
-    for i, cat in enumerate(categorias[:5]):  # Mostrar máximo 5 categorías
-        nombre_cat = cat.get('nombre', '') if isinstance(cat, dict) else str(cat)
-        productos_html += f'<div class="form-group"><label>Categoría {i+1}</label><input type="text" name="categoria_{i}" value="{nombre_cat}"></div>'
+    for i, cat in enumerate(categorias_list[:5]):  # Mostrar máximo 5 categorías
+        nombre_cat = cat.get('nombre', '')
+        cat_id = cat.get('id', f'cat_{i}')
+        productos_html += f'<div class="form-group"><label>Categoría {i+1}</label><input type="text" name="categoria_{i}" value="{nombre_cat}"><input type="hidden" name="categoria_id_{i}" value="{cat_id}"></div>'
     
     # Frases de cortesía
     frases = config.get('frases_cortesia', {})
@@ -307,6 +312,11 @@ async def guardar_cliente(
     categoria_2: str = Form(""),
     categoria_3: str = Form(""),
     categoria_4: str = Form(""),
+    categoria_id_0: str = Form(""),
+    categoria_id_1: str = Form(""),
+    categoria_id_2: str = Form(""),
+    categoria_id_3: str = Form(""),
+    categoria_id_4: str = Form(""),
     frase_general: str = Form(""),
     frase_despedida: str = Form(""),
     faq_horario: str = Form(""),
@@ -342,22 +352,29 @@ async def guardar_cliente(
     config['frases_cortesia']['general'] = frase_general
     config['frases_cortesia']['despedida'] = frase_despedida
     
-    # Actualizar categorías (solo nombres, sin precios por ahora)
-    nuevas_categorias = []
-    for i, cat_nombre in enumerate([categoria_0, categoria_1, categoria_2, categoria_3, categoria_4]):
-        if cat_nombre.strip():
-            # Mantener productos existentes
-            productos = []
-            if i < len(config.get('categorias', [])):
-                cat_existente = config['categorias'][i]
-                if isinstance(cat_existente, dict):
-                    productos = cat_existente.get('productos', [])
-            nuevas_categorias.append({
-                'id': f'cat_{i+1}',
-                'nombre': cat_nombre,
-                'productos': productos
-            })
-    config['categorias'] = nuevas_categorias
+    # Actualizar categorías (manejar como diccionario)
+    categorias_dict = config.get('categorias', {})
+    if not isinstance(categorias_dict, dict):
+        categorias_dict = {}
+    
+    # Obtener IDs de categorías del formulario
+    cat_ids = [categoria_id_0, categoria_id_1, categoria_id_2, categoria_id_3, categoria_id_4]
+    cat_nombres = [categoria_0, categoria_1, categoria_2, categoria_3, categoria_4]
+    
+    for i, (cat_id, cat_nombre) in enumerate(zip(cat_ids, cat_nombres)):
+        if cat_nombre.strip() and cat_id:
+            # Si existe la categoría, actualizar nombre
+            if cat_id in categorias_dict:
+                if isinstance(categorias_dict[cat_id], dict):
+                    categorias_dict[cat_id]['nombre'] = cat_nombre
+            else:
+                # Crear nueva categoría
+                categorias_dict[f'cat_nueva_{i}'] = {
+                    'nombre': cat_nombre,
+                    'tipos': []
+                }
+    
+    config['categorias'] = categorias_dict
     
     # Actualizar FAQ
     if 'faq' not in config:
