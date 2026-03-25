@@ -172,9 +172,15 @@ async def ver_cliente(request: Request, cliente_id: str):
     
     # Productos (categorías principales)
     categorias = config.get('categorias', [])
+    # Asegurar que categorias sea una lista
+    if isinstance(categorias, dict):
+        categorias = list(categorias.values())
+    if not isinstance(categorias, list):
+        categorias = []
+    
     productos_html = ""
     for i, cat in enumerate(categorias[:5]):  # Mostrar máximo 5 categorías
-        nombre_cat = cat.get('nombre', '')
+        nombre_cat = cat.get('nombre', '') if isinstance(cat, dict) else str(cat)
         productos_html += f'<div class="form-group"><label>Categoría {i+1}</label><input type="text" name="categoria_{i}" value="{nombre_cat}"></div>'
     
     # Frases de cortesía
@@ -186,11 +192,13 @@ async def ver_cliente(request: Request, cliente_id: str):
     precios_html = ""
     precios_contador = 0
     for cat in categorias[:3]:  # Máximo 3 categorías
-        for prod in cat.get('productos', [])[:2]:  # Máximo 2 productos por categoría
-            prod_nombre = prod.get('nombre', '')
-            prod_precio = prod.get('precio_base', 0)
-            precios_html += f'<div class="form-group"><label>Precio: {prod_nombre}</label><input type="number" name="precio_{precios_contador}" value="{prod_precio}"><input type="hidden" name="prod_nombre_{precios_contador}" value="{prod_nombre}"></div>'
-            precios_contador += 1
+        if isinstance(cat, dict):
+            for prod in cat.get('productos', [])[:2]:  # Máximo 2 productos por categoría
+                if isinstance(prod, dict):
+                    prod_nombre = prod.get('nombre', '')
+                    prod_precio = prod.get('precio_base', 0)
+                    precios_html += f'<div class="form-group"><label>Precio: {prod_nombre}</label><input type="number" name="precio_{precios_contador}" value="{prod_precio}"><input type="hidden" name="prod_nombre_{precios_contador}" value="{prod_nombre}"></div>'
+                    precios_contador += 1
     
     # Respuestas automáticas (FAQ)
     faq = config.get('faq', {})
