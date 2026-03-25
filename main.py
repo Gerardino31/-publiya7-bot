@@ -26,7 +26,7 @@ app = FastAPI(title="BotlyPro Bot", version="1.0.0")
 
 # Importar y registrar panel de administración
 try:
-    from admin.admin_panel import admin_router
+    from admin.admin_panel import router as admin_router
     app.include_router(admin_router)
     logger.info("✅ Panel de administración cargado")
 except Exception as e:
