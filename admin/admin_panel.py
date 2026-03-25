@@ -182,6 +182,16 @@ async def ver_cliente(request: Request, cliente_id: str):
     frase_general = frases.get('general', '¡Gracias por contactarnos!')
     frase_despedida = frases.get('despedida', '¡Que tengas un excelente día!')
     
+    # Precios (mostrar primeros 3 productos con precios)
+    precios_html = ""
+    precios_contador = 0
+    for cat in categorias[:3]:  # Máximo 3 categorías
+        for prod in cat.get('productos', [])[:2]:  # Máximo 2 productos por categoría
+            prod_nombre = prod.get('nombre', '')
+            prod_precio = prod.get('precio_base', 0)
+            precios_html += f'<div class="form-group"><label>Precio: {prod_nombre}</label><input type="number" name="precio_{precios_contador}" value="{prod_precio}"><input type="hidden" name="prod_nombre_{precios_contador}" value="{prod_nombre}"></div>'
+            precios_contador += 1
+    
     html = f"""
     <!DOCTYPE html>
     <html>
@@ -252,6 +262,7 @@ async def ver_cliente(request: Request, cliente_id: str):
                         <label>Frase de Despedida</label>
                         <input type="text" name="frase_despedida" value="{frase_despedida}" placeholder="Ej: ¡Que tengas un excelente día!">
                     </div>
+                    {precios_html}
                     <button type="submit" class="btn">Guardar Cambios</button>
                     <a href="/admin/dashboard" class="btn btn-secondary">Cancelar</a>
                 </form>
@@ -263,7 +274,29 @@ async def ver_cliente(request: Request, cliente_id: str):
     return HTMLResponse(content=html)
 
 @admin_router.post("/cliente/{cliente_id}/guardar")
-async def guardar_cliente(request: Request, cliente_id: str, nombre: str = Form(...), telefono: str = Form(""), email: str = Form(""), eslogan: str = Form(""), bienvenida: str = Form(""), despedida: str = Form(""), categoria_0: str = Form(""), categoria_1: str = Form(""), categoria_2: str = Form(""), categoria_3: str = Form(""), categoria_4: str = Form(""), frase_general: str = Form(""), frase_despedida: str = Form("")):
+async def guardar_cliente(
+    request: Request,
+    cliente_id: str,
+    nombre: str = Form(...),
+    telefono: str = Form(""),
+    email: str = Form(""),
+    eslogan: str = Form(""),
+    bienvenida: str = Form(""),
+    despedida: str = Form(""),
+    categoria_0: str = Form(""),
+    categoria_1: str = Form(""),
+    categoria_2: str = Form(""),
+    categoria_3: str = Form(""),
+    categoria_4: str = Form(""),
+    frase_general: str = Form(""),
+    frase_despedida: str = Form(""),
+    precio_0: int = Form(0),
+    precio_1: int = Form(0),
+    precio_2: int = Form(0),
+    precio_3: int = Form(0),
+    precio_4: int = Form(0),
+    precio_5: int = Form(0),
+):
     """Guardar cambios de un cliente"""
     config_path = Path(f"clientes/configs/{cliente_id}.json")
     
@@ -292,18 +325,24 @@ async def guardar_cliente(request: Request, cliente_id: str, nombre: str = Form(
     config['frases_cortesia']['general'] = frase_general
     config['frases_cortesia']['despedida'] = frase_despedida
     
-    # Actualizar categorías
+    # Actualizar categorías y precios
     nuevas_categorias = []
+    precios_nuevos = [precio_0, precio_1, precio_2, precio_3, precio_4, precio_5]
+    precio_idx = 0
     for i, cat_nombre in enumerate([categoria_0, categoria_1, categoria_2, categoria_3, categoria_4]):
         if cat_nombre.strip():
-            # Mantener productos existentes si hay
-            productos_existentes = []
+            # Mantener productos existentes y actualizar precios
+            productos = []
             if i < len(config.get('categorias', [])):
-                productos_existentes = config['categorias'][i].get('productos', [])
+                for j, prod in enumerate(config['categorias'][i].get('productos', [])[:2]):
+                    if precio_idx < len(precios_nuevos) and precios_nuevos[precio_idx] > 0:
+                        prod['precio_base'] = precios_nuevos[precio_idx]
+                    productos.append(prod)
+                    precio_idx += 1
             nuevas_categorias.append({
                 'id': f'cat_{i+1}',
                 'nombre': cat_nombre,
-                'productos': productos_existentes
+                'productos': productos
             })
     config['categorias'] = nuevas_categorias
     
