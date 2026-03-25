@@ -177,6 +177,11 @@ async def ver_cliente(request: Request, cliente_id: str):
         nombre_cat = cat.get('nombre', '')
         productos_html += f'<div class="form-group"><label>Categoría {i+1}</label><input type="text" name="categoria_{i}" value="{nombre_cat}"></div>'
     
+    # Frases de cortesía
+    frases = config.get('frases_cortesia', {})
+    frase_general = frases.get('general', '¡Gracias por contactarnos!')
+    frase_despedida = frases.get('despedida', '¡Que tengas un excelente día!')
+    
     html = f"""
     <!DOCTYPE html>
     <html>
@@ -237,6 +242,16 @@ async def ver_cliente(request: Request, cliente_id: str):
                     <hr style="margin: 20px 0;">
                     <h3 style="color: #667eea; margin-bottom: 15px;">📦 Categorías de Productos</h3>
                     {productos_html}
+                    <hr style="margin: 20px 0;">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">💬 Frases de Cortesía</h3>
+                    <div class="form-group">
+                        <label>Frase General</label>
+                        <input type="text" name="frase_general" value="{frase_general}" placeholder="Ej: ¡Gracias por contactarnos!">
+                    </div>
+                    <div class="form-group">
+                        <label>Frase de Despedida</label>
+                        <input type="text" name="frase_despedida" value="{frase_despedida}" placeholder="Ej: ¡Que tengas un excelente día!">
+                    </div>
                     <button type="submit" class="btn">Guardar Cambios</button>
                     <a href="/admin/dashboard" class="btn btn-secondary">Cancelar</a>
                 </form>
@@ -248,7 +263,7 @@ async def ver_cliente(request: Request, cliente_id: str):
     return HTMLResponse(content=html)
 
 @admin_router.post("/cliente/{cliente_id}/guardar")
-async def guardar_cliente(request: Request, cliente_id: str, nombre: str = Form(...), telefono: str = Form(""), email: str = Form(""), eslogan: str = Form(""), bienvenida: str = Form(""), despedida: str = Form(""), categoria_0: str = Form(""), categoria_1: str = Form(""), categoria_2: str = Form(""), categoria_3: str = Form(""), categoria_4: str = Form("")):
+async def guardar_cliente(request: Request, cliente_id: str, nombre: str = Form(...), telefono: str = Form(""), email: str = Form(""), eslogan: str = Form(""), bienvenida: str = Form(""), despedida: str = Form(""), categoria_0: str = Form(""), categoria_1: str = Form(""), categoria_2: str = Form(""), categoria_3: str = Form(""), categoria_4: str = Form(""), frase_general: str = Form(""), frase_despedida: str = Form("")):
     """Guardar cambios de un cliente"""
     config_path = Path(f"clientes/configs/{cliente_id}.json")
     
@@ -270,6 +285,12 @@ async def guardar_cliente(request: Request, cliente_id: str, nombre: str = Form(
         config['mensajes'] = {}
     config['mensajes']['bienvenida'] = bienvenida
     config['mensajes']['despedida'] = despedida
+    
+    # Actualizar frases de cortesía
+    if 'frases_cortesia' not in config:
+        config['frases_cortesia'] = {}
+    config['frases_cortesia']['general'] = frase_general
+    config['frases_cortesia']['despedida'] = frase_despedida
     
     # Actualizar categorías
     nuevas_categorias = []
