@@ -192,6 +192,12 @@ async def ver_cliente(request: Request, cliente_id: str):
             precios_html += f'<div class="form-group"><label>Precio: {prod_nombre}</label><input type="number" name="precio_{precios_contador}" value="{prod_precio}"><input type="hidden" name="prod_nombre_{precios_contador}" value="{prod_nombre}"></div>'
             precios_contador += 1
     
+    # Respuestas automáticas (FAQ)
+    faq = config.get('faq', {})
+    faq_horario = faq.get('horario', 'Lunes a Viernes 8am - 6pm, Sábados 9am - 1pm')
+    faq_ubicacion = faq.get('ubicacion', 'Estamos ubicados en el centro de la ciudad')
+    faq_error = faq.get('no_entendi', 'Lo siento, no entendí tu mensaje. ¿Podrías reformularlo?')
+    
     html = f"""
     <!DOCTYPE html>
     <html>
@@ -263,6 +269,20 @@ async def ver_cliente(request: Request, cliente_id: str):
                         <input type="text" name="frase_despedida" value="{frase_despedida}" placeholder="Ej: ¡Que tengas un excelente día!">
                     </div>
                     {precios_html}
+                    <hr style="margin: 20px 0;">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">❓ Respuestas Automáticas (FAQ)</h3>
+                    <div class="form-group">
+                        <label>Respuesta a "horario"</label>
+                        <input type="text" name="faq_horario" value="{faq_horario}" placeholder="Ej: Lunes a Viernes 8am - 6pm">
+                    </div>
+                    <div class="form-group">
+                        <label>Respuesta a "ubicación/dirección"</label>
+                        <input type="text" name="faq_ubicacion" value="{faq_ubicacion}" placeholder="Ej: Estamos en el centro de la ciudad">
+                    </div>
+                    <div class="form-group">
+                        <label>Mensaje cuando no entiende</label>
+                        <input type="text" name="faq_error" value="{faq_error}" placeholder="Ej: Lo siento, no entendí. ¿Podrías reformularlo?">
+                    </div>
                     <button type="submit" class="btn">Guardar Cambios</button>
                     <a href="/admin/dashboard" class="btn btn-secondary">Cancelar</a>
                 </form>
@@ -296,6 +316,9 @@ async def guardar_cliente(
     precio_3: int = Form(0),
     precio_4: int = Form(0),
     precio_5: int = Form(0),
+    faq_horario: str = Form(""),
+    faq_ubicacion: str = Form(""),
+    faq_error: str = Form(""),
 ):
     """Guardar cambios de un cliente"""
     config_path = Path(f"clientes/configs/{cliente_id}.json")
@@ -345,6 +368,13 @@ async def guardar_cliente(
                 'productos': productos
             })
     config['categorias'] = nuevas_categorias
+    
+    # Actualizar FAQ
+    if 'faq' not in config:
+        config['faq'] = {}
+    config['faq']['horario'] = faq_horario
+    config['faq']['ubicacion'] = faq_ubicacion
+    config['faq']['no_entendi'] = faq_error
     
     # Guardar
     with open(config_path, 'w', encoding='utf-8') as f:
