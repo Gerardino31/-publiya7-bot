@@ -119,6 +119,19 @@ async def ver_cliente(cliente_id: str):
     faq_ubicacion = faq.get('ubicacion', 'Consultar dirección')
     faq_error = faq.get('no_entendi', 'Lo siento, no entendí. ¿Podrías reformularlo?')
     
+    # Categorías (mostrar nombres)
+    categorias_dict = config.get('categorias', {})
+    cat_nombres = []
+    if isinstance(categorias_dict, dict):
+        for cat_key, cat_data in categorias_dict.items():
+            if isinstance(cat_data, dict):
+                cat_nombres.append(cat_data.get('nombre', cat_key))
+    
+    # Generar HTML de categorías
+    cats_html = ""
+    for i, cat_nombre in enumerate(cat_nombres[:5]):
+        cats_html += f'<div style="margin-bottom: 10px;"><label style="font-weight: bold;">Categoría {i+1}:</label> {cat_nombre}</div>'
+    
     html = f"""
     <!DOCTYPE html>
     <html>
@@ -178,6 +191,10 @@ async def ver_cliente(cliente_id: str):
                     <label style="display: block; font-weight: bold;">Mensaje cuando no entiende:</label>
                     <input type="text" name="faq_error" value="{faq_error}" style="padding: 8px; width: 300px;">
                 </div>
+                <hr style="margin: 20px 0;">
+                <h3 style="color: #667eea;">📦 Categorías de Productos</h3>
+                {cats_html}
+                <p style="color: #666; font-size: 12px;">* Para editar productos y precios, contactar soporte</p>
                 <button type="submit" style="background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Guardar</button>
                 <a href="/admin/dashboard" style="background: #718096; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-left: 10px;">Volver</a>
             </form>
