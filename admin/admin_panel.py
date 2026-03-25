@@ -159,8 +159,11 @@ async def ver_cliente(request: Request, cliente_id: str):
     with open(config_path, 'r', encoding='utf-8') as f:
         config = json.load(f)
     
-    # Generar HTML de configuración
-    config_html = json.dumps(config, indent=2, ensure_ascii=False)
+    # Campos editables básicos
+    nombre = config.get('nombre', '')
+    telefono = config.get('telefono', '')
+    email = config.get('email', '')
+    eslogan = config.get('eslogan', '')
     
     html = f"""
     <!DOCTYPE html>
@@ -176,8 +179,12 @@ async def ver_cliente(request: Request, cliente_id: str):
             .sidebar a:hover {{ background: #667eea; color: white; }}
             .main {{ margin-left: 290px; padding: 30px; }}
             .card {{ background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
-            pre {{ background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }}
-            .btn {{ background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px; }}
+            .form-group {{ margin-bottom: 15px; }}
+            label {{ display: block; margin-bottom: 5px; font-weight: bold; color: #333; }}
+            input[type="text"], input[type="email"] {{ width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }}
+            .btn {{ background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 10px; border: none; cursor: pointer; }}
+            .btn-secondary {{ background: #718096; margin-left: 10px; }}
+            .success {{ background: #c6f6d5; color: #22543d; padding: 10px; border-radius: 5px; margin-bottom: 15px; }}
         </style>
     </head>
     <body>
@@ -188,17 +195,59 @@ async def ver_cliente(request: Request, cliente_id: str):
             <a href="/admin/conversaciones">💬 Conversaciones</a>
         </div>
         <div class="main">
-            <h1>Cliente: {config.get('nombre', cliente_id)}</h1>
+            <h1>Editar Cliente: {nombre}</h1>
             <div class="card">
-                <h3>Configuración</h3>
-                <pre>{config_html}</pre>
-                <a href="/admin/dashboard" class="btn">Volver al Dashboard</a>
+                <form method="POST" action="/admin/cliente/{cliente_id}/guardar">
+                    <div class="form-group">
+                        <label>Nombre del Negocio</label>
+                        <input type="text" name="nombre" value="{nombre}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="text" name="telefono" value="{telefono}">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" value="{email}">
+                    </div>
+                    <div class="form-group">
+                        <label>Eslogan</label>
+                        <input type="text" name="eslogan" value="{eslogan}">
+                    </div>
+                    <button type="submit" class="btn">Guardar Cambios</button>
+                    <a href="/admin/dashboard" class="btn btn-secondary">Cancelar</a>
+                </form>
             </div>
         </div>
     </body>
     </html>
     """
     return HTMLResponse(content=html)
+
+@admin_router.post("/cliente/{cliente_id}/guardar")
+async def guardar_cliente(request: Request, cliente_id: str, nombre: str = Form(...), telefono: str = Form(""), email: str = Form(""), eslogan: str = Form("")):
+    """Guardar cambios de un cliente"""
+    config_path = Path(f"clientes/configs/{cliente_id}.json")
+    
+    if not config_path.exists():
+        return HTMLResponse(content="<h1>Cliente no encontrado</h1><a href='/admin/dashboard'>Volver</a>")
+    
+    # Leer configuración actual
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+    
+    # Actualizar campos
+    config['nombre'] = nombre
+    config['telefono'] = telefono
+    config['email'] = email
+    config['eslogan'] = eslogan
+    
+    # Guardar
+    with open(config_path, 'w', encoding='utf-8') as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+    
+    # Redirigir con mensaje de éxito
+    return RedirectResponse(url=f"/admin/cliente/{cliente_id}?success=1", status_code=302)
 
 @admin_router.get("/conversaciones", response_class=HTMLResponse)
 async def admin_conversaciones(request: Request):
