@@ -103,6 +103,11 @@ async def ver_cliente(cliente_id: str):
     email = config.get('email', '')
     eslogan = config.get('eslogan', '')
     
+    # Mensajes del bot
+    mensajes = config.get('mensajes', {})
+    bienvenida = mensajes.get('bienvenida', '')
+    despedida = mensajes.get('despedida', '')
+    
     html = f"""
     <!DOCTYPE html>
     <html>
@@ -130,6 +135,14 @@ async def ver_cliente(cliente_id: str):
                     <label style="display: block; font-weight: bold;">Eslogan:</label>
                     <input type="text" name="eslogan" value="{eslogan}" style="padding: 8px; width: 300px;">
                 </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-weight: bold;">Mensaje de Bienvenida:</label>
+                    <input type="text" name="bienvenida" value="{bienvenida}" style="padding: 8px; width: 300px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-weight: bold;">Mensaje de Despedida:</label>
+                    <input type="text" name="despedida" value="{despedida}" style="padding: 8px; width: 300px;">
+                </div>
                 <button type="submit" style="background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Guardar</button>
                 <a href="/admin/dashboard" style="background: #718096; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-left: 10px;">Volver</a>
             </form>
@@ -140,7 +153,7 @@ async def ver_cliente(cliente_id: str):
     return HTMLResponse(content=html)
 
 @router.post("/cliente/{cliente_id}/guardar")
-async def guardar_cliente(cliente_id: str, nombre: str = Form(...), telefono: str = Form(""), email: str = Form(""), eslogan: str = Form("")):
+async def guardar_cliente(cliente_id: str, nombre: str = Form(...), telefono: str = Form(""), email: str = Form(""), eslogan: str = Form(""), bienvenida: str = Form(""), despedida: str = Form("")):
     config_path = Path(f"clientes/configs/{cliente_id}.json")
     
     if not config_path.exists():
@@ -153,6 +166,12 @@ async def guardar_cliente(cliente_id: str, nombre: str = Form(...), telefono: st
     config['telefono'] = telefono
     config['email'] = email
     config['eslogan'] = eslogan
+    
+    # Guardar mensajes del bot
+    if 'mensajes' not in config:
+        config['mensajes'] = {}
+    config['mensajes']['bienvenida'] = bienvenida
+    config['mensajes']['despedida'] = despedida
     
     with open(config_path, 'w', encoding='utf-8') as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
