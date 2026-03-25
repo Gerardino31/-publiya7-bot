@@ -197,6 +197,7 @@ async def ver_cliente(cliente_id: str):
                 <p style="color: #666; font-size: 12px;">* Para editar productos y precios, contactar soporte</p>
                 <button type="submit" style="background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Guardar</button>
                 <a href="/admin/dashboard" style="background: #718096; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-left: 10px;">Volver</a>
+                <a href="/admin/cliente/{cliente_id}/productos" style="background: #48bb78; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-left: 10px;">📦 Ver Productos</a>
             </form>
         </div>
     </body>
@@ -242,5 +243,56 @@ async def guardar_cliente(cliente_id: str, nombre: str = Form(...), telefono: st
         json.dump(config, f, indent=2, ensure_ascii=False)
     
     return RedirectResponse(url=f"/admin/cliente/{cliente_id}", status_code=302)
+
+@router.get("/cliente/{cliente_id}/productos")
+async def ver_productos(cliente_id: str):
+    config_path = Path(f"clientes/configs/{cliente_id}.json")
+    
+    if not config_path.exists():
+        return HTMLResponse(content="<h1>Cliente no encontrado</h1>")
+    
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+    
+    nombre = config.get('nombre', 'Sin nombre')
+    categorias_dict = config.get('categorias', {})
+    
+    # Generar HTML de categorías y productos
+    cats_html = ""
+    if isinstance(categorias_dict, dict):
+        for cat_key, cat_data in categorias_dict.items():
+            if isinstance(cat_data, dict):
+                cat_nombre = cat_data.get('nombre', cat_key)
+                cats_html += f"<h3 style='color: #667eea; margin-top: 20px;'>📦 {cat_nombre}</h3><ul>"
+                
+                # Mostrar productos
+                tipos = cat_data.get('tipos', [])
+                for tipo in tipos[:3]:  # Máximo 3 productos por categoría
+                    if isinstance(tipo, dict):
+                        prod_nombre = tipo.get('nombre', 'Sin nombre')
+                        precio_1000 = tipo.get('precio_1000', 0)
+                        cats_html += f"<li>{prod_nombre}: ${precio_1000:,} (1000 unid)</li>"
+                
+                cats_html += "</ul>"
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head><title>Productos - {nombre}</title></head>
+    <body style="font-family: Arial; margin: 0;">
+        <div style="background: #2d3748; color: white; padding: 20px;">
+            <h2>🤖 BotlyPro</h2>
+        </div>
+        <div style="padding: 30px;">
+            <h1>Productos y Precios: {nombre}</h1>
+            <a href="/admin/cliente/{cliente_id}" style="background: #718096; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">← Volver al Cliente</a>
+            <hr style="margin: 20px 0;">
+            {cats_html}
+            <p style="color: #666; margin-top: 30px;">* Edición de precios próximamente</p>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
 
 print("✅ Panel simple cargado")
