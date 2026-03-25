@@ -428,4 +428,4 @@ async def admin_conversaciones(request: Request):
     """
     return HTMLResponse(content=html)
 
-print("✅ Panel de administración simplificado cargado")
+print("✅ Panel de administración BotlyPro cargado correctamente")
