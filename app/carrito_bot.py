@@ -82,9 +82,10 @@ class CarritoBot:
         
         tiempo_entrega = self._calcular_tiempo_entrega(cat_id, cantidad_num or 0)
         
-        # Obtener resumen actual del carrito
+        # Obtener resumen actual del carrito (después de agregar el item)
+        carrito_actualizado = db_saas.obtener_carrito_por_id(carrito_id)
         items = db_saas.obtener_items_carrito(carrito_id)
-        total_carrito = carrito['total']
+        total_carrito = carrito_actualizado['total'] if carrito_actualizado else 0
         
         # Construir mensaje con saltos de línea reales
         lineas = [
