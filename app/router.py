@@ -488,6 +488,9 @@ Total: ${estado['total']:,} COP
             # Por metro cuadrado o cm cuadrado
             precio_unidad = producto.get('precio_m2', producto.get('precio_cm2', 0))
             return int(area * precio_unidad)
+        elif tipo_cot == 'medida':
+            # Tipo medida pero sin area - no se puede calcular
+            return 0
         else:
             # Por cantidad
             base = cat.get('unidad_base', 1000)
