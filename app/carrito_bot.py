@@ -86,25 +86,28 @@ class CarritoBot:
         items = db_saas.obtener_items_carrito(carrito_id)
         total_carrito = carrito['total']
         
-        mensaje = f"""✅ PRODUCTO AGREGADO
-
-• {producto.get('nombre')}
-• Cantidad: {cantidad_str}
-• Subtotal: ${total:,} COP
-• Entrega: {tiempo_entrega}
-
-🛒 CARRITO ACTUAL ({len(items)} productos):
-💰 Total: ${total_carrito:,} COP
-
-¿Qué deseas hacer?
-1️⃣ Agregar OTRO producto
-2️⃣ VER carrito completo
-3️⃣ FINALIZAR pedido
-4️⃣ CANCELAR carrito
-
-Escribe 1, 2, 3 o 4."""
+        # Construir mensaje con saltos de línea reales
+        lineas = [
+            "✅ PRODUCTO AGREGADO",
+            "",
+            f"• {producto.get('nombre')}",
+            f"• Cantidad: {cantidad_str}",
+            f"• Subtotal: ${total:,} COP",
+            f"• Entrega: {tiempo_entrega}",
+            "",
+            f"🛒 CARRITO ACTUAL ({len(items)} productos):",
+            f"💰 Total: ${total_carrito:,} COP",
+            "",
+            "¿Qué deseas hacer?",
+            "1️⃣ Agregar OTRO producto",
+            "2️⃣ VER carrito completo",
+            "3️⃣ FINALIZAR pedido",
+            "4️⃣ CANCELAR carrito",
+            "",
+            "Escribe 1, 2, 3 o 4."
+        ]
         
-        return mensaje
+        return "\n".join(lineas)
     
     def ver_carrito(self, cliente_id: str, user_id: str, mostrar_resumen: bool = False) -> str:
         """Muestra el contenido del carrito o el resumen final"""
@@ -116,12 +119,14 @@ Escribe 1, 2, 3 o 4."""
         carrito_id = carrito['id']
         items = db_saas.obtener_items_carrito(carrito_id)
         
+        lineas = []
+        
         if mostrar_resumen:
-            # Resumen final para confirmación
-            mensaje = "🧾 RESUMEN DE TU PEDIDO\n\n"
+            lineas.append("🧾 RESUMEN DE TU PEDIDO")
         else:
-            # Vista normal del carrito
-            mensaje = "🛒 TU CARRITO\n\n"
+            lineas.append("🛒 TU CARRITO")
+        
+        lineas.append("")
         
         for i, item in enumerate(items, 1):
             if item['medidas']:
@@ -129,23 +134,25 @@ Escribe 1, 2, 3 o 4."""
             else:
                 cantidad_str = f"{item['cantidad']:,} unid"
             
-            mensaje += f"{i}. {item['nombre_producto']}\n"
-            mensaje += f"   {cantidad_str} × ${item['precio_unitario']:,} = ${item['subtotal']:,}\n\n"
+            lineas.append(f"{i}. {item['nombre_producto']}")
+            lineas.append(f"   {cantidad_str} × ${item['precio_unitario']:,} = ${item['subtotal']:,}")
+            lineas.append("")
         
-        mensaje += f"💰 TOTAL: ${carrito['total']:,} COP\n\n"
+        lineas.append(f"💰 TOTAL: ${carrito['total']:,} COP")
+        lineas.append("")
         
         if mostrar_resumen:
-            mensaje += "¿Confirmas tu pedido?\n"
-            mensaje += "1️⃣ Sí, confirmar\n"
-            mensaje += "2️⃣ No, seguir comprando\n"
-            mensaje += "3️⃣ Cancelar todo"
+            lineas.append("¿Confirmas tu pedido?")
+            lineas.append("1️⃣ Sí, confirmar")
+            lineas.append("2️⃣ No, seguir comprando")
+            lineas.append("3️⃣ Cancelar todo")
         else:
-            mensaje += "¿Qué deseas hacer?\n"
-            mensaje += "1️⃣ FINALIZAR pedido\n"
-            mensaje += "2️⃣ Agregar más productos\n"
-            mensaje += "3️⃣ Cancelar carrito"
+            lineas.append("¿Qué deseas hacer?")
+            lineas.append("1️⃣ FINALIZAR pedido")
+            lineas.append("2️⃣ Agregar más productos")
+            lineas.append("3️⃣ Cancelar carrito")
         
-        return mensaje
+        return "\n".join(lineas)
     
     def cancelar_carrito(self, cliente_id: str, user_id: str) -> str:
         """Cancela el carrito activo"""
@@ -206,14 +213,18 @@ Escribe 1, 2, 3 o 4."""
         except Exception as e:
             print(f"⚠️ Error en notificación: {e}")
         
-        return f"""🎉 ¡PEDIDO CONFIRMADO!
-
-📦 Número de orden: *{numero_orden}*
-💰 Total: ${carrito['total']:,} COP
-
-Gracias por tu compra. Te contactaremos pronto para confirmar los detalles.
-
-¿Deseas hacer otro pedido? Escribe 'menu'."""
+        lineas = [
+            "🎉 ¡PEDIDO CONFIRMADO!",
+            "",
+            f"📦 Número de orden: *{numero_orden}*",
+            f"💰 Total: ${carrito['total']:,} COP",
+            "",
+            "Gracias por tu compra. Te contactaremos pronto para confirmar los detalles.",
+            "",
+            "¿Deseas hacer otro pedido? Escribe 'menu'."
+        ]
+        
+        return "\n".join(lineas)
     
     def _calcular_tiempo_entrega(self, categoria_id: str, cantidad: int) -> str:
         """Calcula tiempo de entrega según categoría"""
