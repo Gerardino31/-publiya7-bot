@@ -44,7 +44,7 @@ class BotAutoDetect:
         self.loader = ConfigLoader()
         self.routers = {}  # Cache de routers por cliente
         self.cache_timestamp = {}  # Timestamp de cada cache
-        self.CACHE_TTL = 300  # 5 minutos de expiración
+        self.CACHE_TTL = 60  # 1 minuto de expiración
     
     def _get_cached_router(self, cliente_id: str) -> Optional[MessageRouter]:
         """Obtiene router del cache si no ha expirado."""
