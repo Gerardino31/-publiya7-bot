@@ -457,7 +457,7 @@ class MessageRouter:
                 
                 # Agregar al carrito si está disponible
                 if self.carrito and user_id and self.cliente_id:
-                    return self._agregar_al_carrito(estado, user_id), {'tipo': 'carrito'}
+                    return self._agregar_al_carrito(estado, user_id)
                 
                 return self._generar_cotizacion(estado), {'tipo': 'cotizacion'}
             else:
