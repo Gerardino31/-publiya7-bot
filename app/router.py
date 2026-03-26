@@ -7,6 +7,7 @@ import re
 import random
 from datetime import datetime
 from typing import Dict, Tuple, Optional
+import pytz
 
 # Importar base de datos
 try:
@@ -25,30 +26,18 @@ class MessageRouter:
     # ========== FUNCIONES DE CORTESIA ==========
     
     def _obtener_saludo_horario(self) -> str:
-        """Genera saludo segun hora del dia."""
-        hora = datetime.now().hour
+        """Genera saludo segun hora del dia (zona horaria Colombia)."""
+        # Usar zona horaria de Colombia (America/Bogota)
+        tz_colombia = pytz.timezone('America/Bogota')
+        hora = datetime.now(tz_colombia).hour
         nombre = self.config.get('nombre', 'Publiya7')
         
         if 6 <= hora < 12:
-            saludos = [
-                f"¡Buenos dias! Bienvenido a {nombre}.",
-                f"¡Buenos dias! {nombre} a su servicio.",
-                f"¡Hola! Buenos dias. ¿En que puedo ayudarle?"
-            ]
+            return f"¡Buenos días!"
         elif 12 <= hora < 18:
-            saludos = [
-                f"¡Buenas tardes! Gracias por contactar a {nombre}.",
-                f"¡Buenas tardes! {nombre} esta aqui para servirle.",
-                f"¡Hola! Buenas tardes. ¿Que necesita hoy?"
-            ]
+            return f"¡Buenas tardes!"
         else:
-            saludos = [
-                f"¡Buenas noches! {nombre} a su servicio.",
-                f"¡Buenas noches! Gracias por escribirnos.",
-                f"¡Hola! Buenas noches. ¿En que puedo asistirle?"
-            ]
-        
-        return random.choice(saludos)
+            return f"¡Buenas noches!"
     
     def _frase_cortesia(self, tipo: str = "general") -> str:
         """Frases de cortesia personalizables."""
@@ -102,16 +91,14 @@ class MessageRouter:
     def generar_menu_principal(self) -> str:
         """Genera menu principal con todas las categorias."""
         saludo = self._obtener_saludo_horario()
+        nombre = self.config.get('nombre', 'Publiya7')
         eslogan = self.config.get('eslogan', '')
-        cortesia = self._frase_cortesia('general')
         
-        menu = f"""{saludo}
+        menu = f"""👋 {saludo} ¡Bienvenido a {nombre}!
 
 {eslogan}
 
-{cortesia}
-
-¿Que producto le interesa hoy?"""
+¿En que podemos ayudarte?"""
         
         categorias = self.config.get('categorias', {})
         for i, (cat_id, cat_data) in enumerate(categorias.items(), 1):
