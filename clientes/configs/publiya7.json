@@ -176,19 +176,35 @@
       ]
     },
     
-    "otros": {
-      "nombre": "Otros Productos",
+    "otros_cm2": {
+      "nombre": "Otros - Por Medida",
+      "tipo_cotizacion": "medida",
+      "unidad": "cm2",
+      "tipos": [
+        {"id": "bastidores", "nombre": "Bastidores", "precio_cm2": 35.0},
+        {"id": "tijeras", "nombre": "Tijeras Publicitarias", "precio_cm2": 45.0},
+        {"id": "avisos", "nombre": "Avisos Luminosos", "precio_cm2": 65.0},
+        {"id": "plotter", "nombre": "Plotter de Corte", "precio_cm2": 18.0}
+      ]
+    },
+    
+    "otros_fijos": {
+      "nombre": "Otros - Precio Fijo",
+      "tipo_cotizacion": "cantidad",
+      "unidad_base": 1,
+      "tipos": [
+        {"id": "talonarios", "nombre": "Talonarios", "precio_unitario": 110000},
+        {"id": "afiches", "nombre": "Afiches", "precio_unitario": 280000},
+        {"id": "carnets", "nombre": "Carnets PVC", "precio_unitario": 30000},
+        {"id": "pad_mouse", "nombre": "Pad Mouse", "precio_unitario": 25000},
+        {"id": "cascara", "nombre": "Cáscara de Huevo (Adhesivo seguridad)", "precio_unitario": 55000}
+      ]
+    },
+    
+    "otros_personalizado": {
+      "nombre": "Otros - Cotización Personalizada",
       "tipo_cotizacion": "personalizado",
       "tipos": [
-        {"id": "talonarios", "nombre": "Talonarios", "requiere_cotizacion": true},
-        {"id": "afiches", "nombre": "Afiches", "requiere_cotizacion": true},
-        {"id": "bastidores", "nombre": "Bastidores", "requiere_cotizacion": true},
-        {"id": "tijeras", "nombre": "Tijeras Publicitarias", "requiere_cotizacion": true},
-        {"id": "avisos", "nombre": "Avisos Luminosos", "requiere_cotizacion": true},
-        {"id": "carnets", "nombre": "Carnets PVC", "requiere_cotizacion": true},
-        {"id": "pad_mouse", "nombre": "Pad Mouse", "requiere_cotizacion": true},
-        {"id": "cascara", "nombre": "Cáscara de Huevo (Adhesivo seguridad)", "requiere_cotizacion": true},
-        {"id": "plotter", "nombre": "Plotter de Corte", "requiere_cotizacion": true},
         {"id": "souvenirs", "nombre": "Souvenirs (Tulas, Termos)", "requiere_cotizacion": true},
         {"id": "camisetas", "nombre": "Camisetas (Cotización personalizada)", "requiere_cotizacion": true}
       ]
