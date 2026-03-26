@@ -33,9 +33,12 @@ async def login_page():
     return HTMLResponse(content=html)
 
 @router.post("/login")
-async def login(username: str = Form(...), password: str = Form(...)):
+@router.get("/login")
+async def login(username: str = Form(""), password: str = Form("")):
     if username == ADMIN_USER and password == ADMIN_PASS:
         return RedirectResponse(url="/admin/dashboard", status_code=302)
+    if username or password:
+        return HTMLResponse(content="<h1>Credenciales incorrectas</h1><a href='/admin'>Volver</a>")
     return HTMLResponse(content="<h1>Error</h1><a href='/admin'>Volver</a>")
 
 @router.get("/dashboard")
