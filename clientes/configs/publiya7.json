@@ -110,15 +110,15 @@
       "tipo_cotizacion": "cantidad",
       "unidad_base": 1000,
       "tipos": [
-        {"id": "v_1c_13x7", "nombre": "1 cara 13x7cm", "precio_1000": 75000},
-        {"id": "v_2c_13x7", "nombre": "2 caras 13x7cm", "precio_1000": 120000},
-        {"id": "v_1c_21x10", "nombre": "1 cara 21x10cm", "precio_1000": 130000},
-        {"id": "v_2c_21x10", "nombre": "2 caras 21x10cm", "precio_1000": 220000},
-        {"id": "v_2c_21x12", "nombre": "2 caras 21x12cm", "precio_1000": 240000},
-        {"id": "v_1c_21x13", "nombre": "1 cara 21x13cm", "precio_1000": 185000},
-        {"id": "v_2c_21x13", "nombre": "2 caras 21x13cm", "precio_1000": 260000},
-        {"id": "pleg_carta", "nombre": "Plegable Tamaño Carta", "precio_1000": 540000},
-        {"id": "pleg_oficio", "nombre": "Plegable Tamaño Oficio", "precio_1000": 590000}
+        {"id": "v_1c_13x7", "nombre": "1 cara 13x7cm", "precio_1000": 75000, "precio_2000": 142500, "precio_5000": 337500},
+        {"id": "v_2c_13x7", "nombre": "2 caras 13x7cm", "precio_1000": 120000, "precio_2000": 228000, "precio_5000": 540000},
+        {"id": "v_1c_21x10", "nombre": "1 cara 21x10cm", "precio_1000": 130000, "precio_2000": 247000, "precio_5000": 585000},
+        {"id": "v_2c_21x10", "nombre": "2 caras 21x10cm", "precio_1000": 220000, "precio_2000": 418000, "precio_5000": 990000},
+        {"id": "v_2c_21x12", "nombre": "2 caras 21x12cm", "precio_1000": 240000, "precio_2000": 456000, "precio_5000": 1080000},
+        {"id": "v_1c_21x13", "nombre": "1 cara 21x13cm", "precio_1000": 185000, "precio_2000": 351500, "precio_5000": 832500},
+        {"id": "v_2c_21x13", "nombre": "2 caras 21x13cm", "precio_1000": 260000, "precio_2000": 494000, "precio_5000": 1170000},
+        {"id": "pleg_carta", "nombre": "Plegable Tamaño Carta", "precio_1000": 540000, "precio_2000": 1026000, "precio_5000": 2430000},
+        {"id": "pleg_oficio", "nombre": "Plegable Tamaño Oficio", "precio_1000": 590000, "precio_2000": 1121000, "precio_5000": 2655000}
       ]
     },
     
