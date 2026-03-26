@@ -368,18 +368,20 @@ async def guardar_productos(request: Request, cliente_id: str):
                             if f'prod_precio_{prod_idx}' in form_data:
                                 tipo['precio_1000'] = int(form_data.get(f'prod_precio_{prod_idx}', 0))
                             elif f'prod_precio_cm2_{prod_idx}' in form_data:
+                                # Usar float para precios decimales (cm2)
+                                precio_val = float(form_data.get(f'prod_precio_cm2_{prod_idx}', 0))
                                 # Determinar qué campo de cm2 actualizar
                                 if 'precio_cm2_con_terminado' in tipo:
-                                    tipo['precio_cm2_con_terminado'] = int(form_data.get(f'prod_precio_cm2_{prod_idx}', 0))
+                                    tipo['precio_cm2_con_terminado'] = precio_val
                                 elif 'precio_cm2_sin_terminado' in tipo:
-                                    tipo['precio_cm2_sin_terminado'] = int(form_data.get(f'prod_precio_cm2_{prod_idx}', 0))
+                                    tipo['precio_cm2_sin_terminado'] = precio_val
                                 elif 'precio_cm2' in tipo:
-                                    tipo['precio_cm2'] = int(form_data.get(f'prod_precio_cm2_{prod_idx}', 0))
+                                    tipo['precio_cm2'] = precio_val
                                 else:
                                     # Buscar cualquier campo de precio y actualizarlo
                                     for key in list(tipo.keys()):
                                         if 'precio' in key.lower():
-                                            tipo[key] = int(form_data.get(f'prod_precio_cm2_{prod_idx}', 0))
+                                            tipo[key] = precio_val
                                             break
                             break
             
