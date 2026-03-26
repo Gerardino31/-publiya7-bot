@@ -165,6 +165,27 @@ async def ver_cliente(cliente_id: str):
                     <input type="text" name="despedida" value="{despedida}" style="padding: 8px; width: 300px;">
                 </div>
                 <hr style="margin: 20px 0;">
+                <h3 style="color: #48bb78;">📱 Enlace WhatsApp para tus Clientes</h3>
+                <div style="background: #f0fff4; border: 2px solid #48bb78; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <p style="margin: 0 0 10px 0; font-weight: bold; color: #2d3748;">Comparte este enlace con tus clientes:</p>
+                    <div style="background: white; padding: 10px; border-radius: 5px; word-break: break-all; font-family: monospace; font-size: 14px; margin-bottom: 15px;">
+                        https://wa.me/14155238886?text=hola%20{cliente_id}
+                    </div>
+                    <button type="button" onclick="navigator.clipboard.writeText('https://wa.me/14155238886?text=hola%20{cliente_id}')" style="background: #48bb78; color: white; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">
+                        📋 Copiar Enlace
+                    </button>
+                    <a href="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://wa.me/14155238886?text=hola%20{cliente_id}" target="_blank" style="background: #667eea; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                        📱 Ver QR
+                    </a>
+                    <div style="margin-top: 15px; padding: 10px; background: #e6fffa; border-radius: 5px; font-size: 13px; color: #234e52;">
+                        <strong>💡 Instrucciones para el dueño del negocio:</strong><br>
+                        1. Copia este enlace<br>
+                        2. Compártelo en tu página web, redes sociales o tarjetas<br>
+                        3. Tus clientes harán click y serán atendidos automáticamente<br>
+                        4. El bot responderá con tu nombre y productos
+                    </div>
+                </div>
+                <hr style="margin: 20px 0;">
                 <h3 style="color: #667eea;">💬 Frases de Cortesía</h3>
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; font-weight: bold;">Frase General:</label>
