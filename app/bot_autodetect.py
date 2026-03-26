@@ -103,7 +103,7 @@ class BotAutoDetect:
         # Crear nuevo router
         config = get_config(cliente_id)
         if config:
-            router = MessageRouter(config)
+            router = MessageRouter(config, cliente_id=cliente_id)
             self._cache_router(cliente_id, router)
             return router
         

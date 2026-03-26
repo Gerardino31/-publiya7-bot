@@ -15,13 +15,26 @@ try:
 except ImportError:
     db = None
 
+# Importar carrito SaaS
+try:
+    from app.carrito_bot import CarritoBot
+except ImportError:
+    CarritoBot = None
+
 
 class MessageRouter:
     """Enruta mensajes y genera respuestas personalizadas."""
     
-    def __init__(self, config: Dict):
+    def __init__(self, config: Dict, cliente_id: str = None):
         self.config = config
+        self.cliente_id = cliente_id
         self.estado = {}  # Estado de la conversacion por usuario
+        
+        # Inicializar carrito si está disponible
+        if CarritoBot:
+            self.carrito = CarritoBot(config)
+        else:
+            self.carrito = None
     
     # ========== FUNCIONES DE CORTESIA ==========
     
@@ -225,7 +238,7 @@ class MessageRouter:
         
         # PASO 2: Ingresar cantidad/medida
         if estado['paso'] == 2:
-            return self._procesar_cantidad(msg, estado)
+            return self._procesar_cantidad(msg, estado, user_id)
         
         # PASO 3: Confirmar pedido
         if estado['paso'] == 3:
@@ -240,8 +253,24 @@ class MessageRouter:
                 estado.update({'paso': 0, 'categoria': None, 'producto': None, 'cantidad': None, 'total': 0})
             return respuesta, metadata
         
-        # PASO 4: Despues de confirmar, esperar respuesta para nuevo pedido
+        # PASO 4: Confirmación final del pedido (después de ver resumen)
         if estado['paso'] == 4:
+            # Delegar a _procesar_confirmacion que maneja el carrito
+            respuesta, metadata = self._procesar_confirmacion(msg, estado, user_id, cliente_id)
+            
+            if metadata.get('tipo') == 'pedido_confirmado':
+                # Pedido confirmado, limpiar estado y pasar a paso 5 (nuevo pedido)
+                estado.update({'paso': 5, 'categoria': None, 'producto': None, 'cantidad': None, 'total': 0})
+                self._guardar_estado(cliente_id, user_id, estado)
+            elif metadata.get('tipo') == 'ver_carrito':
+                # Volver al carrito, mantener paso 3
+                estado['paso'] = 3
+                self._guardar_estado(cliente_id, user_id, estado)
+            
+            return respuesta, metadata
+        
+        # PASO 5: Después de pedido confirmado, preguntar por nuevo pedido
+        if estado['paso'] == 5:
             if msg in ["si", "sí", "si"]:
                 estado.update({'paso': 0, 'categoria': None, 'producto': None, 'cantidad': None, 'total': 0})
                 self._guardar_estado(cliente_id, user_id, estado)
@@ -251,7 +280,7 @@ class MessageRouter:
                 estado.update({'paso': 0, 'categoria': None, 'producto': None, 'cantidad': None, 'total': 0})
                 return f"{self._frase_cortesia('despedida')} ¡Que tenga un excelente dia!", {'tipo': 'despedida'}
             else:
-                return "¿Desea realizar otro pedido? Escriba 'si' para ver el menu o 'no' para finalizar.", {'tipo': 'esperando_respuesta'}
+                return "¿Desea realizar otro pedido? Escriba 'si' para ver el menú o 'no' para finalizar.", {'tipo': 'esperando_respuesta'}
         
         # Fallback
         return self._frase_cortesia('fallback'), {'tipo': 'fallback'}
@@ -394,8 +423,8 @@ class MessageRouter:
         
         return "Por favor seleccione el numero del producto.", {'tipo': 'error'}
     
-    def _procesar_cantidad(self, msg: str, estado: dict) -> Tuple[str, dict]:
-        """Procesa cantidad o medidas."""
+    def _procesar_cantidad(self, msg: str, estado: dict, user_id: str = None) -> Tuple[str, dict]:
+        """Procesa cantidad o medidas y agrega al carrito."""
         cat_id = estado['categoria']
         categorias = self.config.get('categorias', {})
         cat = categorias.get(cat_id, {})
@@ -410,6 +439,11 @@ class MessageRouter:
                 estado['cantidad'] = f"{ancho}x{alto}cm"
                 estado['total'] = self._calcular_precio(estado, ancho * alto)
                 estado['paso'] = 3
+                
+                # Agregar al carrito si está disponible
+                if self.carrito and user_id and self.cliente_id:
+                    return self._agregar_al_carrito(estado, user_id, area=ancho*alto)
+                
                 return self._generar_cotizacion(estado, area=ancho*alto), {'tipo': 'cotizacion'}
             else:
                 return f"Disculpe, necesito las medidas. {self._frase_cortesia('general')}\n\nEjemplo: 100x200 o 150x300 (en cm)", {'tipo': 'error'}
@@ -420,53 +454,132 @@ class MessageRouter:
                 estado['cantidad'] = int(num.group(1))
                 estado['total'] = self._calcular_precio(estado)
                 estado['paso'] = 3
+                
+                # Agregar al carrito si está disponible
+                if self.carrito and user_id and self.cliente_id:
+                    return self._agregar_al_carrito(estado, user_id), {'tipo': 'carrito'}
+                
                 return self._generar_cotizacion(estado), {'tipo': 'cotizacion'}
             else:
                 return f"Disculpe, necesito la cantidad. {self._frase_cortesia('general')}\n\nEjemplo: 1000, 5000, 10000", {'tipo': 'error'}
     
+    def _agregar_al_carrito(self, estado: dict, user_id: str, area: int = None) -> Tuple[str, dict]:
+        """Agrega producto al carrito y retorna mensaje con opciones."""
+        try:
+            mensaje = self.carrito.agregar_producto(
+                cliente_id=self.cliente_id,
+                user_id=user_id,
+                estado=estado,
+                area=area
+            )
+            return mensaje, {'tipo': 'carrito'}
+        except Exception as e:
+            print(f"[ERROR] Error agregando al carrito: {e}")
+            # Fallback a cotización normal
+            if area:
+                return self._generar_cotizacion(estado, area=area), {'tipo': 'cotizacion'}
+            else:
+                return self._generar_cotizacion(estado), {'tipo': 'cotizacion'}
+    
     def _procesar_confirmacion(self, msg: str, estado: dict, user_id: str, cliente_id: str) -> Tuple[str, dict]:
-        """Procesa confirmacion del pedido."""
-        if msg in ["si", "sí", "si"]:
-            numero_orden = None
-            
-            # Guardar pedido en BD - la BD genera el numero de orden
-            if db:
-                try:
-                    numero_orden = db.guardar_pedido(
-                        cliente_id=cliente_id,
-                        user_id=user_id,
-                        producto=estado.get('categoria', ''),
-                        tipo=str(estado.get('producto', '')),
-                        cantidad=str(estado.get('cantidad', '')),
-                        precio_total=estado.get('total', 0),
-                        notas="Pedido generado por bot"
-                    )
-                except Exception as e:
-                    print(f"[ERROR] Error guardando pedido: {e}")
-                    return "Disculpe, ocurrio un error al guardar su pedido. Por favor intente de nuevo.", {'tipo': 'error'}
-            
-            # Si no se pudo guardar en BD, generar numero localmente (fallback)
-            if not numero_orden:
-                from datetime import datetime
-                import random
-                numero_orden = f"ORD-{datetime.now().strftime('%Y%m%d')}-{random.randint(1000,9999)}"
-            
-            respuesta = f"""[PEDIDO CONFIRMADO]
+        """Procesa opciones del carrito: 1-Otro, 2-Ver, 3-Finalizar, 4-Cancelar."""
+        
+        # Opciones del carrito
+        if msg in ["1", "1️⃣", "otro", "agregar", "mas"]:
+            # Volver a seleccionar categoría
+            estado.update({'paso': 0, 'categoria': None, 'producto': None, 'cantidad': None, 'total': 0})
+            return self.generar_menu_principal(), {'tipo': 'menu_principal'}
+        
+        elif msg in ["2", "2️⃣", "ver", "carrito"]:
+            # Ver carrito
+            if self.carrito:
+                mensaje = self.carrito.ver_carrito(cliente_id, user_id)
+                return mensaje, {'tipo': 'ver_carrito'}
+            else:
+                return "🛒 Carrito no disponible.", {'tipo': 'error'}
+        
+        elif msg in ["3", "3️⃣", "finalizar", "pedido", "comprar"]:
+            # Finalizar pedido - mostrar resumen
+            if self.carrito:
+                mensaje = self.carrito.ver_carrito(cliente_id, user_id, mostrar_resumen=True)
+                estado['paso'] = 4  # Ir a confirmación final
+                return mensaje, {'tipo': 'resumen_pedido'}
+            else:
+                # Fallback a pedido simple
+                return self._finalizar_pedido_simple(estado, user_id, cliente_id)
+        
+        elif msg in ["4", "4️⃣", "cancelar", "eliminar"]:
+            # Cancelar carrito
+            if self.carrito:
+                mensaje = self.carrito.cancelar_carrito(cliente_id, user_id)
+                estado.update({'paso': 0, 'categoria': None, 'producto': None, 'cantidad': None, 'total': 0})
+                return mensaje, {'tipo': 'carrito_cancelado'}
+            else:
+                estado.update({'paso': 0, 'categoria': None, 'producto': None, 'cantidad': None, 'total': 0})
+                return "Carrito cancelado. Escribe 'menu' para empezar de nuevo.", {'tipo': 'cancelado'}
+        
+        # Confirmación final del pedido (paso 4)
+        elif msg in ["si", "sí", "si", "1"] and estado.get('paso') == 4:
+            return self._finalizar_pedido_carrito(user_id, cliente_id)
+        
+        elif msg in ["no", "2"] and estado.get('paso') == 4:
+            # Volver al carrito
+            estado['paso'] = 3
+            if self.carrito:
+                mensaje = self.carrito.ver_carrito(cliente_id, user_id)
+                return mensaje, {'tipo': 'ver_carrito'}
+            return "¿Qué deseas hacer? 1-Otro producto 2-Ver carrito 3-Finalizar 4-Cancelar", {'tipo': 'carrito'}
+        
+        else:
+            return "🛒 ¿Qué deseas hacer?\n1️⃣ Agregar OTRO producto\n2️⃣ VER carrito\n3️⃣ FINALIZAR pedido\n4️⃣ CANCELAR", {'tipo': 'carrito'}
+    
+    def _finalizar_pedido_carrito(self, user_id: str, cliente_id: str) -> Tuple[str, dict]:
+        """Finaliza el pedido desde el carrito."""
+        if self.carrito:
+            try:
+                mensaje = self.carrito.finalizar_pedido(cliente_id, user_id)
+                return mensaje, {'tipo': 'pedido_confirmado'}
+            except Exception as e:
+                print(f"[ERROR] Error finalizando pedido: {e}")
+                return "❌ Error al procesar el pedido. Intente de nuevo.", {'tipo': 'error'}
+        else:
+            return self._finalizar_pedido_simple({}, user_id, cliente_id)
+    
+    def _finalizar_pedido_simple(self, estado: dict, user_id: str, cliente_id: str) -> Tuple[str, dict]:
+        """Finaliza pedido simple (sin carrito) - fallback."""
+        numero_orden = None
+        
+        # Guardar pedido en BD
+        if db:
+            try:
+                numero_orden = db.guardar_pedido(
+                    cliente_id=cliente_id,
+                    user_id=user_id,
+                    producto=estado.get('categoria', ''),
+                    tipo=str(estado.get('producto', '')),
+                    cantidad=str(estado.get('cantidad', '')),
+                    precio_total=estado.get('total', 0),
+                    notas="Pedido generado por bot"
+                )
+            except Exception as e:
+                print(f"[ERROR] Error guardando pedido: {e}")
+        
+        # Fallback si no hay BD
+        if not numero_orden:
+            from datetime import datetime
+            import random
+            numero_orden = f"ORD-{datetime.now().strftime('%Y%m%d')}-{random.randint(1000,9999)}"
+        
+        respuesta = f"""🎉 ¡PEDIDO CONFIRMADO!
 
-Numero de Orden: {numero_orden}
-Total: ${estado['total']:,} COP
+📦 Número de Orden: {numero_orden}
+💰 Total: ${estado.get('total', 0):,} COP
 
 {self._frase_cortesia('agradecimiento')}
 
-¿Desea realizar otro pedido? Escriba 'si' para ver el menu o 'no' para finalizar."""
-            
-            return respuesta, {'tipo': 'pedido_confirmado', 'orden': numero_orden}
+¿Deseas realizar otro pedido? Escribe 'si' para ver el menú o 'no' para finalizar."""
         
-        elif msg == "no":
-            return f"Entendido. ¿Hay algun otro producto que le interese consultar?", {'tipo': 'cancelado'}
-        
-        else:
-            return f"¿Confirma el pedido? Por favor escriba 'si' para confirmar o 'no' para cancelar.", {'tipo': 'confirmacion'}
+        return respuesta, {'tipo': 'pedido_confirmado', 'orden': numero_orden}
     
     def _calcular_precio(self, estado: dict, area: int = None) -> int:
         """Calcula el precio segun configuracion."""
