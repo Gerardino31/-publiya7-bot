@@ -293,6 +293,9 @@ async def ver_productos(cliente_id: str):
                                     break
                             precio_field = f'<input type="number" name="prod_precio_{prod_idx}" value="{precio_val}" style="padding: 5px; width: 100px;">'
                         
+                        # Agregar step="0.1" para permitir decimales
+                        precio_field_con_step = precio_field.replace('type="number"', 'type="number" step="0.1"')
+                        
                         form_html += f"""
                         <div style="margin-bottom: 10px; padding: 10px; background: #f7fafc; border-radius: 5px; margin-left: 20px;">
                             <input type="hidden" name="prod_cat_{prod_idx}" value="{cat_key}">
@@ -300,7 +303,7 @@ async def ver_productos(cliente_id: str):
                             <label style="font-weight: bold;">Producto:</label>
                             <input type="text" name="prod_nombre_{prod_idx}" value="{prod_nombre}" style="padding: 5px; width: 250px; margin: 0 10px;">
                             <label>{precio_label}</label>
-                            {precio_field}
+                            {precio_field_con_step}
                         </div>
                         """
                         prod_idx += 1
