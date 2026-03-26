@@ -259,12 +259,20 @@ def detectar_y_procesar_mensaje(mensaje: str, user_id: str,
     """
     logger.info(f"SaaS Webhook: usuario={user_id}, mensaje='{mensaje[:50]}...'")
     
-    # 1. Verificar si el usuario ya tiene cliente asignado
+    # 1. Verificar si el usuario ya tiene cliente asignado (BLOQUEO DE CAMBIO)
     cliente_id = cliente_cache.obtener_cliente_de_usuario(user_id)
     
     if cliente_id:
         logger.info(f"Usuario {user_id} ya tiene cliente asignado: {cliente_id}")
-        # Usar el cliente asignado
+        
+        # Verificar si está intentando cambiar de cliente (ignorar si es el caso)
+        cliente_nuevo = cliente_cache.detectar_cliente_por_texto(mensaje)
+        if cliente_nuevo and cliente_nuevo != cliente_id:
+            logger.warning(f"Usuario {user_id} intentó cambiar de {cliente_id} a {cliente_nuevo} - BLOQUEADO")
+            # Log del intento
+            cliente_cache.log_deteccion(user_id, mensaje, cliente_nuevo, 'intento_cambio_bloqueado', False)
+        
+        # Usar el cliente asignado original
         return bot_autodetect.procesar_mensaje(
             mensaje=mensaje,
             user_id=user_id,
@@ -276,25 +284,53 @@ def detectar_y_procesar_mensaje(mensaje: str, user_id: str,
     cliente_id_detectado = cliente_cache.detectar_cliente_por_texto(mensaje)
     
     if cliente_id_detectado:
-        logger.info(f"Cliente detectado por texto: {cliente_id_detectado}")
+        logger.info(f"🎯 Cliente detectado por texto: {cliente_id_detectado}")
+        
         # Guardar relación para futuros mensajes
-        cliente_cache.guardar_relacion_usuario_cliente(user_id, cliente_id_detectado)
+        cliente_cache.guardar_relacion_usuario_cliente(user_id, cliente_id_detectado, 'texto')
+        
+        # Log de detección exitosa
+        cliente_cache.log_deteccion(user_id, mensaje, cliente_id_detectado, 'texto', True)
+        
+        # Obtener config del cliente para bienvenida personalizada
+        config_cliente = cliente_cache.obtener_cliente(cliente_id_detectado)
         
         # Procesar mensaje
-        return bot_autodetect.procesar_mensaje(
+        respuesta = bot_autodetect.procesar_mensaje(
             mensaje=mensaje,
             user_id=user_id,
             identificador=cliente_id_detectado,
             canal=canal
         )
+        
+        # Agregar bienvenida personalizada si es el primer mensaje
+        mensaje_bienvenida = config_cliente.get('mensaje_bienvenida', f"¡Hola! Bienvenido a {config_cliente.get('nombre', 'nuestro servicio')}")
+        eslogan = config_cliente.get('eslogan', '')
+        
+        texto_bienvenida = f"👋 {mensaje_bienvenida}\n"
+        if eslogan:
+            texto_bienvenida += f"_{eslogan}_\n\n"
+        else:
+            texto_bienvenida += "\n"
+        
+        respuesta['texto'] = texto_bienvenida + respuesta['texto']
+        
+        return respuesta
     
-    # 3. Si no se detectó cliente, usar default o pedir código
-    logger.warning(f"No se detectó cliente para usuario {user_id}")
+    # 3. FALLBACK: Si no se detectó cliente, pedir nombre del negocio
+    logger.warning(f"⚠️ No se detectó cliente para usuario {user_id}")
+    
+    # Log de detección fallida
+    cliente_cache.log_deteccion(user_id, mensaje, None, 'fallback', False)
+    
     return {
         'texto': "👋 ¡Hola! Bienvenido a BotlyPro.\n\n"
-                 "Para atenderte mejor, por favor indica el nombre del negocio "
-                 "con el que deseas comunicarte.\n\n"
-                 "Ejemplo: 'Publiya7' o 'Imprenta XYZ'",
+                 "Para atenderte mejor, por favor escribe el nombre de la empresa "
+                 "con la que deseas comunicarte.\n\n"
+                 "📌 *Ejemplos:*\n"
+                 "• 'hola publiya7'\n"
+                 "• 'imprenta xyz'\n"
+                 "• O usa el enlace que te compartieron 🙌",
         'tipo': 'solicitud_cliente',
         'cliente_detectado': False
     }

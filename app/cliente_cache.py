@@ -91,7 +91,8 @@ class ClienteCache:
         
         return None
     
-    def guardar_relacion_usuario_cliente(self, usuario_id: str, cliente_id: str):
+    def guardar_relacion_usuario_cliente(self, usuario_id: str, cliente_id: str, 
+                                         metodo_deteccion: str = 'automatico'):
         """Guarda la relación usuario -> cliente en memoria y BD"""
         self._cliente_por_usuario[usuario_id] = cliente_id
         
@@ -105,13 +106,47 @@ class ClienteCache:
                 INSERT INTO estado_usuario (cliente_id, usuario_id, datos_extra)
                 VALUES (?, ?, ?)
                 ON CONFLICT(cliente_id, usuario_id) DO UPDATE SET
-                datos_extra = excluded.datos_extra
-            """, (cliente_id, usuario_id, json.dumps({'cliente_asignado': True})))
+                datos_extra = excluded.datos_extra,
+                actualizado_en = CURRENT_TIMESTAMP
+            """, (cliente_id, usuario_id, json.dumps({
+                'cliente_asignado': True,
+                'metodo_deteccion': metodo_deteccion,
+                'fecha_asignacion': time.time()
+            })))
             
             conn.commit()
             conn.close()
         except Exception as e:
             print(f"⚠️ Error guardando relación en BD: {e}")
+    
+    def usuario_tiene_cliente_asignado(self, usuario_id: str) -> bool:
+        """Verifica si un usuario ya tiene cliente asignado (bloqueo de cambio)"""
+        cliente_id = self.obtener_cliente_de_usuario(usuario_id)
+        return cliente_id is not None
+    
+    def log_deteccion(self, usuario_id: str, texto: str, cliente_detectado: str, 
+                      metodo: str, exito: bool):
+        """Guarda log de detección para análisis futuro"""
+        try:
+            conn = db_saas._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                INSERT INTO conversaciones 
+                (cliente_id, usuario_id, mensaje, tipo, paso)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                cliente_detectado or 'desconocido',
+                usuario_id,
+                texto[:500],  # Limitar longitud
+                'deteccion',
+                1 if exito else 0
+            ))
+            
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"⚠️ Error guardando log: {e}")
     
     def obtener_cliente_de_usuario(self, usuario_id: str) -> Optional[str]:
         """Obtiene el cliente asignado a un usuario"""
