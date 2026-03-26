@@ -108,7 +108,7 @@ async def ver_cliente(cliente_id: str):
     
     # Mensajes del bot
     mensajes = config.get('mensajes', {})
-    bienvenida = mensajes.get('bienvenida', '')
+    pregunta = mensajes.get('pregunta', '¿En que podemos ayudarte?')
     despedida = mensajes.get('despedida', '')
     
     # Frases de cortesía
@@ -152,8 +152,9 @@ async def ver_cliente(cliente_id: str):
                     <input type="text" name="eslogan" value="{eslogan}" style="padding: 8px; width: 300px;">
                 </div>
                 <div style="margin-bottom: 15px;">
-                    <label style="display: block; font-weight: bold;">Mensaje de Bienvenida:</label>
-                    <input type="text" name="bienvenida" value="{bienvenida}" style="padding: 8px; width: 300px;">
+                    <label style="display: block; font-weight: bold;">Pregunta Final (menú principal):</label>
+                    <input type="text" name="pregunta" value="{pregunta}" style="padding: 8px; width: 300px;">
+                    <small style="color: #666;">Ej: ¿En qué podemos ayudarte?</small>
                 </div>
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; font-weight: bold;">Mensaje de Despedida:</label>
@@ -195,7 +196,7 @@ async def ver_cliente(cliente_id: str):
     return HTMLResponse(content=html)
 
 @router.post("/cliente/{cliente_id}/guardar")
-async def guardar_cliente(cliente_id: str, nombre: str = Form(...), telefono: str = Form(""), email: str = Form(""), eslogan: str = Form(""), bienvenida: str = Form(""), despedida: str = Form(""), frase_general: str = Form(""), frase_despedida: str = Form(""), faq_horario: str = Form(""), faq_ubicacion: str = Form(""), faq_error: str = Form("")):
+async def guardar_cliente(cliente_id: str, nombre: str = Form(...), telefono: str = Form(""), email: str = Form(""), eslogan: str = Form(""), pregunta: str = Form(""), despedida: str = Form(""), frase_general: str = Form(""), frase_despedida: str = Form(""), faq_horario: str = Form(""), faq_ubicacion: str = Form(""), faq_error: str = Form("")):
     config_path = Path(f"clientes/configs/{cliente_id}.json")
     
     if not config_path.exists():
@@ -212,7 +213,7 @@ async def guardar_cliente(cliente_id: str, nombre: str = Form(...), telefono: st
     # Guardar mensajes del bot
     if 'mensajes' not in config:
         config['mensajes'] = {}
-    config['mensajes']['bienvenida'] = bienvenida
+    config['mensajes']['pregunta'] = pregunta
     config['mensajes']['despedida'] = despedida
     
     # Guardar frases de cortesía

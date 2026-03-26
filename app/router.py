@@ -94,24 +94,15 @@ class MessageRouter:
         nombre = self.config.get('nombre', 'Publiya7')
         eslogan = self.config.get('eslogan', '')
         
-        # Usar mensaje de bienvenida personalizado si existe
+        # Obtener pregunta personalizada o usar default
         mensajes = self.config.get('mensajes', {})
-        bienvenida_personalizada = mensajes.get('bienvenida', '')
+        pregunta = mensajes.get('pregunta', '¿En que podemos ayudarte?')
         
-        if bienvenida_personalizada:
-            menu = f"""👋 {saludo}
-
-{bienvenida_personalizada}
+        menu = f"""👋 {saludo} ¡Bienvenido a {nombre}!
 
 {eslogan}
 
-¿En que podemos ayudarte?"""
-        else:
-            menu = f"""👋 {saludo} ¡Bienvenido a {nombre}!
-
-{eslogan}
-
-¿En que podemos ayudarte?"""
+{pregunta}"""
         
         categorias = self.config.get('categorias', {})
         for i, (cat_id, cat_data) in enumerate(categorias.items(), 1):
