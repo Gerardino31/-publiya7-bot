@@ -268,7 +268,7 @@ async def ver_productos(cliente_id: str):
                 
                 # Mostrar productos editables
                 tipos = cat_data.get('tipos', [])
-                for tipo in tipos[:3]:  # Máximo 3 productos por categoría
+                for tipo in tipos[:10]:  # Máximo 10 productos por categoría
                     if isinstance(tipo, dict):
                         prod_id = tipo.get('id', f'prod_{prod_idx}')
                         prod_nombre = tipo.get('nombre', 'Sin nombre')
@@ -308,18 +308,12 @@ async def ver_productos(cliente_id: str):
 @router.get("/cliente/{cliente_id}/productos/guardar")
 async def guardar_productos(
     cliente_id: str,
-    prod_id_0: str = Form(""),
-    prod_id_1: str = Form(""),
-    prod_id_2: str = Form(""),
-    prod_id_3: str = Form(""),
-    prod_id_4: str = Form(""),
-    prod_id_5: str = Form(""),
-    precio_0: int = Form(0),
-    precio_1: int = Form(0),
-    precio_2: int = Form(0),
-    precio_3: int = Form(0),
-    precio_4: int = Form(0),
-    precio_5: int = Form(0),
+    prod_id_0: str = Form(""), prod_id_1: str = Form(""), prod_id_2: str = Form(""),
+    prod_id_3: str = Form(""), prod_id_4: str = Form(""), prod_id_5: str = Form(""),
+    prod_id_6: str = Form(""), prod_id_7: str = Form(""), prod_id_8: str = Form(""), prod_id_9: str = Form(""),
+    precio_0: int = Form(0), precio_1: int = Form(0), precio_2: int = Form(0),
+    precio_3: int = Form(0), precio_4: int = Form(0), precio_5: int = Form(0),
+    precio_6: int = Form(0), precio_7: int = Form(0), precio_8: int = Form(0), precio_9: int = Form(0),
 ):
     try:
         config_path = Path(f"clientes/configs/{cliente_id}.json")
@@ -331,8 +325,8 @@ async def guardar_productos(
             config = json.load(f)
         
         # Actualizar precios
-        prod_ids = [prod_id_0, prod_id_1, prod_id_2, prod_id_3, prod_id_4, prod_id_5]
-        precios = [precio_0, precio_1, precio_2, precio_3, precio_4, precio_5]
+        prod_ids = [prod_id_0, prod_id_1, prod_id_2, prod_id_3, prod_id_4, prod_id_5, prod_id_6, prod_id_7, prod_id_8, prod_id_9]
+        precios = [precio_0, precio_1, precio_2, precio_3, precio_4, precio_5, precio_6, precio_7, precio_8, precio_9]
         
         for prod_id_str, nuevo_precio in zip(prod_ids, precios):
             if prod_id_str and "|" in prod_id_str:
