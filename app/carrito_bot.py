@@ -82,22 +82,32 @@ class CarritoBot:
         
         tiempo_entrega = self._calcular_tiempo_entrega(cat_id, cantidad_num or 0)
         
-        return f"""✅ AGREGADO AL CARRITO
+        # Obtener resumen actual del carrito
+        items = db_saas.obtener_items_carrito(carrito_id)
+        total_carrito = carrito['total']
+        
+        mensaje = f"""✅ PRODUCTO AGREGADO
 
 • {producto.get('nombre')}
 • Cantidad: {cantidad_str}
 • Subtotal: ${total:,} COP
 • Entrega: {tiempo_entrega}
 
-🛒 ¿Qué deseas hacer?
-1️⃣ Agregar OTRO producto
-2️⃣ VER carrito / Finalizar
-3️⃣ CANCELAR
+🛒 CARRITO ACTUAL ({len(items)} productos):
+💰 Total: ${total_carrito:,} COP
 
-Escribe 1, 2 o 3."""
+¿Qué deseas hacer?
+1️⃣ Agregar OTRO producto
+2️⃣ VER carrito completo
+3️⃣ FINALIZAR pedido
+4️⃣ CANCELAR carrito
+
+Escribe 1, 2, 3 o 4."""
+        
+        return mensaje
     
-    def ver_carrito(self, cliente_id: str, user_id: str) -> str:
-        """Muestra el contenido del carrito"""
+    def ver_carrito(self, cliente_id: str, user_id: str, mostrar_resumen: bool = False) -> str:
+        """Muestra el contenido del carrito o el resumen final"""
         carrito = db_saas.obtener_carrito_activo(cliente_id, user_id)
         
         if not carrito or carrito['cantidad_items'] == 0:
@@ -106,7 +116,12 @@ Escribe 1, 2 o 3."""
         carrito_id = carrito['id']
         items = db_saas.obtener_items_carrito(carrito_id)
         
-        mensaje = "🛒 TU CARRITO\n\n"
+        if mostrar_resumen:
+            # Resumen final para confirmación
+            mensaje = "🧾 RESUMEN DE TU PEDIDO\n\n"
+        else:
+            # Vista normal del carrito
+            mensaje = "🛒 TU CARRITO\n\n"
         
         for i, item in enumerate(items, 1):
             if item['medidas']:
@@ -118,13 +133,37 @@ Escribe 1, 2 o 3."""
             mensaje += f"   {cantidad_str} × ${item['precio_unitario']:,} = ${item['subtotal']:,}\n\n"
         
         mensaje += f"💰 TOTAL: ${carrito['total']:,} COP\n\n"
-        mensaje += "¿Confirmar pedido? Escribe 'SI' para confirmar o 'AGREGAR' para más productos."
+        
+        if mostrar_resumen:
+            mensaje += "¿Confirmas tu pedido?\n"
+            mensaje += "1️⃣ Sí, confirmar\n"
+            mensaje += "2️⃣ No, seguir comprando\n"
+            mensaje += "3️⃣ Cancelar todo"
+        else:
+            mensaje += "¿Qué deseas hacer?\n"
+            mensaje += "1️⃣ FINALIZAR pedido\n"
+            mensaje += "2️⃣ Agregar más productos\n"
+            mensaje += "3️⃣ Cancelar carrito"
         
         return mensaje
     
+    def cancelar_carrito(self, cliente_id: str, user_id: str) -> str:
+        """Cancela el carrito activo"""
+        carrito = db_saas.obtener_carrito_activo(cliente_id, user_id)
+        
+        if not carrito or carrito['cantidad_items'] == 0:
+            return "🛒 No tienes productos en el carrito.\n\nEscribe 'menu' para ver productos."
+        
+        # Limpiar items del carrito
+        db_saas.limpiar_carrito(carrito['id'])
+        
+        return "❌ Carrito cancelado.\n\nTodos los productos han sido eliminados.\n\nEscribe 'menu' para empezar de nuevo."
+    
     def finalizar_pedido(self, cliente_id: str, user_id: str, 
                         nombre: str = None, telefono: str = None) -> str:
-        """Convierte el carrito en pedido"""
+        """Convierte el carrito en pedido y envía notificaciones"""
+        from app.notificaciones import notificador
+        
         carrito = db_saas.obtener_carrito_activo(cliente_id, user_id)
         
         if not carrito or carrito['cantidad_items'] == 0:
@@ -142,10 +181,35 @@ Escribe 1, 2 o 3."""
         if not numero_orden:
             return "❌ Error al crear el pedido. Intente de nuevo."
         
+        # Obtener items para notificación
+        items = db_saas.obtener_items_carrito(carrito['id'])
+        
+        # Enviar notificación al dueño
+        pedido_data = {
+            'numero_orden': numero_orden,
+            'total': carrito['total'],
+            'usuario_id': user_id,
+            'nombre_comprador': nombre
+        }
+        
+        # Configuración del cliente para notificaciones
+        cliente_config = {
+            'nombre': self.config.get('nombre', 'Negocio'),
+            'whatsapp': self.config.get('whatsapp'),
+            'telefono_notificaciones': self.config.get('telefono_notificaciones'),
+            'notificar_whatsapp': True
+        }
+        
+        # Enviar notificación (no bloquea la respuesta al usuario)
+        try:
+            notificador.notificar_nuevo_pedido(cliente_config, pedido_data, items)
+        except Exception as e:
+            print(f"⚠️ Error en notificación: {e}")
+        
         return f"""🎉 ¡PEDIDO CONFIRMADO!
 
-Número de orden: {numero_orden}
-Total: ${carrito['total']:,} COP
+📦 Número de orden: *{numero_orden}*
+💰 Total: ${carrito['total']:,} COP
 
 Gracias por tu compra. Te contactaremos pronto para confirmar los detalles.
 
