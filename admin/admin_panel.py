@@ -229,8 +229,14 @@ async def guardar_cliente(cliente_id: str, nombre: str = Form(...), telefono: st
     config['faq']['ubicacion'] = faq_ubicacion
     config['faq']['no_entendi'] = faq_error
     
-    with open(config_path, 'w', encoding='utf-8') as f:
-        json.dump(config, f, indent=2, ensure_ascii=False)
+    # Guardar archivo
+    try:
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        print(f"✅ Configuración guardada: {cliente_id}")
+    except Exception as e:
+        print(f"❌ Error guardando: {e}")
+        return HTMLResponse(content=f"<h1>Error al guardar</h1><p>{str(e)}</p>")
     
     return RedirectResponse(url=f"/admin/cliente/{cliente_id}", status_code=302)
 
