@@ -484,7 +484,28 @@ class MessageRouter:
     def _procesar_confirmacion(self, msg: str, estado: dict, user_id: str, cliente_id: str) -> Tuple[str, dict]:
         """Procesa opciones del carrito: 1-Otro, 2-Ver, 3-Finalizar, 4-Cancelar."""
         
-        # Opciones del carrito (después de agregar producto)
+        # PRIMERO: Verificar si estamos en confirmación final (paso 4)
+        if estado.get('paso') == 4:
+            if msg in ["si", "sí", "si", "1", "1️⃣"]:
+                # Confirmar pedido
+                return self._finalizar_pedido_carrito(user_id, cliente_id)
+            elif msg in ["no", "2", "2️⃣"]:
+                # Volver al carrito
+                estado['paso'] = 3
+                if self.carrito:
+                    mensaje = self.carrito.ver_carrito(cliente_id, user_id)
+                    return mensaje, {'tipo': 'ver_carrito'}
+                return "¿Qué deseas hacer? 1-Otro producto 2-Ver carrito 3-Finalizar 4-Cancelar", {'tipo': 'carrito'}
+            elif msg in ["cancelar", "3", "3️⃣"]:
+                # Cancelar todo
+                if self.carrito:
+                    mensaje = self.carrito.cancelar_carrito(cliente_id, user_id)
+                else:
+                    mensaje = "Carrito cancelado."
+                estado.update({'paso': 0, 'categoria': None, 'producto': None, 'cantidad': None, 'total': 0})
+                return mensaje, {'tipo': 'carrito_cancelado'}
+        
+        # Opciones del carrito (después de agregar producto, paso 3)
         # Mensaje muestra: 1-Otro, 2-Ver, 3-Finalizar, 4-Cancelar
         if msg in ["1", "1️⃣", "otro", "agregar", "mas", "agregar otro"]:
             # Volver a seleccionar categoría
@@ -513,23 +534,10 @@ class MessageRouter:
             # Cancelar carrito
             if self.carrito:
                 mensaje = self.carrito.cancelar_carrito(cliente_id, user_id)
-                estado.update({'paso': 0, 'categoria': None, 'producto': None, 'cantidad': None, 'total': 0})
-                return mensaje, {'tipo': 'carrito_cancelado'}
             else:
-                estado.update({'paso': 0, 'categoria': None, 'producto': None, 'cantidad': None, 'total': 0})
-                return "Carrito cancelado. Escribe 'menu' para empezar de nuevo.", {'tipo': 'cancelado'}
-        
-        # Confirmación final del pedido (paso 4)
-        elif msg in ["si", "sí", "si", "1"] and estado.get('paso') == 4:
-            return self._finalizar_pedido_carrito(user_id, cliente_id)
-        
-        elif msg in ["no", "2"] and estado.get('paso') == 4:
-            # Volver al carrito
-            estado['paso'] = 3
-            if self.carrito:
-                mensaje = self.carrito.ver_carrito(cliente_id, user_id)
-                return mensaje, {'tipo': 'ver_carrito'}
-            return "¿Qué deseas hacer? 1-Otro producto 2-Ver carrito 3-Finalizar 4-Cancelar", {'tipo': 'carrito'}
+                mensaje = "Carrito cancelado. Escribe 'menu' para empezar de nuevo."
+            estado.update({'paso': 0, 'categoria': None, 'producto': None, 'cantidad': None, 'total': 0})
+            return mensaje, {'tipo': 'carrito_cancelado'}
         
         else:
             return "🛒 ¿Qué deseas hacer?\n1️⃣ Agregar OTRO producto\n2️⃣ VER carrito\n3️⃣ FINALIZAR pedido\n4️⃣ CANCELAR", {'tipo': 'carrito'}
