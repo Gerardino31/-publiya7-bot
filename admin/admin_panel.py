@@ -264,20 +264,29 @@ async def ver_productos(cliente_id: str):
         for cat_key, cat_data in categorias_dict.items():
             if isinstance(cat_data, dict):
                 cat_nombre = cat_data.get('nombre', cat_key)
-                form_html += f"<h3 style='color: #667eea; margin-top: 20px;'>📦 {cat_nombre}</h3>"
+                # Campo editable para nombre de categoría
+                form_html += f"""
+                <div style="background: #e2e8f0; padding: 15px; margin-top: 20px; border-radius: 5px;">
+                    <label style="font-weight: bold; color: #2d3748;">📦 Nombre Categoría:</label>
+                    <input type="text" name="cat_nombre_{cat_key}" value="{cat_nombre}" style="padding: 8px; width: 300px; margin-left: 10px;">
+                </div>
+                """
                 
-                # Mostrar productos editables
+                # Mostrar TODOS los productos editables
                 tipos = cat_data.get('tipos', [])
-                for tipo in tipos[:10]:  # Máximo 10 productos por categoría
+                for tipo in tipos:
                     if isinstance(tipo, dict):
                         prod_id = tipo.get('id', f'prod_{prod_idx}')
                         prod_nombre = tipo.get('nombre', 'Sin nombre')
                         precio_1000 = tipo.get('precio_1000', 0)
                         form_html += f"""
-                        <div style="margin-bottom: 10px; padding: 10px; background: #f7fafc; border-radius: 5px;">
-                            <label style="font-weight: bold;">{prod_nombre}</label><br>
-                            <input type="hidden" name="prod_id_{prod_idx}" value="{cat_key}|{prod_id}">
-                            Precio 1000 unid: $<input type="number" name="precio_{prod_idx}" value="{precio_1000}" style="padding: 5px; width: 100px;">
+                        <div style="margin-bottom: 10px; padding: 10px; background: #f7fafc; border-radius: 5px; margin-left: 20px;">
+                            <input type="hidden" name="prod_cat_{prod_idx}" value="{cat_key}">
+                            <input type="hidden" name="prod_id_{prod_idx}" value="{prod_id}">
+                            <label style="font-weight: bold;">Producto:</label>
+                            <input type="text" name="prod_nombre_{prod_idx}" value="{prod_nombre}" style="padding: 5px; width: 250px; margin: 0 10px;">
+                            <label>Precio 1000 unid: $</label>
+                            <input type="number" name="prod_precio_{prod_idx}" value="{precio_1000}" style="padding: 5px; width: 100px;">
                         </div>
                         """
                         prod_idx += 1
@@ -296,7 +305,7 @@ async def ver_productos(cliente_id: str):
             <hr style="margin: 20px 0;">
             <form method="POST" action="/admin/cliente/{cliente_id}/productos/guardar">
                 {form_html}
-                <button type="submit" style="background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px;">Guardar Precios</button>
+                <button type="submit" style="background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px;">Guardar Cambios</button>
             </form>
         </div>
     </body>
@@ -306,15 +315,7 @@ async def ver_productos(cliente_id: str):
 
 @router.post("/cliente/{cliente_id}/productos/guardar")
 @router.get("/cliente/{cliente_id}/productos/guardar")
-async def guardar_productos(
-    cliente_id: str,
-    prod_id_0: str = Form(""), prod_id_1: str = Form(""), prod_id_2: str = Form(""),
-    prod_id_3: str = Form(""), prod_id_4: str = Form(""), prod_id_5: str = Form(""),
-    prod_id_6: str = Form(""), prod_id_7: str = Form(""), prod_id_8: str = Form(""), prod_id_9: str = Form(""),
-    precio_0: int = Form(0), precio_1: int = Form(0), precio_2: int = Form(0),
-    precio_3: int = Form(0), precio_4: int = Form(0), precio_5: int = Form(0),
-    precio_6: int = Form(0), precio_7: int = Form(0), precio_8: int = Form(0), precio_9: int = Form(0),
-):
+async def guardar_productos(request: Request, cliente_id: str):
     try:
         config_path = Path(f"clientes/configs/{cliente_id}.json")
         
@@ -324,20 +325,35 @@ async def guardar_productos(
         with open(config_path, 'r', encoding='utf-8') as f:
             config = json.load(f)
         
-        # Actualizar precios
-        prod_ids = [prod_id_0, prod_id_1, prod_id_2, prod_id_3, prod_id_4, prod_id_5, prod_id_6, prod_id_7, prod_id_8, prod_id_9]
-        precios = [precio_0, precio_1, precio_2, precio_3, precio_4, precio_5, precio_6, precio_7, precio_8, precio_9]
+        # Obtener datos del formulario
+        form_data = await request.form()
         
-        for prod_id_str, nuevo_precio in zip(prod_ids, precios):
-            if prod_id_str and "|" in prod_id_str:
-                cat_key, prod_id = prod_id_str.split("|")
+        # Actualizar nombres de categorías
+        for key, value in form_data.items():
+            if key.startswith('cat_nombre_'):
+                cat_key = key.replace('cat_nombre_', '')
                 if cat_key in config.get('categorias', {}):
-                    cat_data = config['categorias'][cat_key]
-                    if isinstance(cat_data, dict):
-                        for tipo in cat_data.get('tipos', []):
-                            if isinstance(tipo, dict) and tipo.get('id') == prod_id:
-                                tipo['precio_1000'] = nuevo_precio
-                                break
+                    if isinstance(config['categorias'][cat_key], dict):
+                        config['categorias'][cat_key]['nombre'] = value
+        
+        # Actualizar productos (nombres y precios)
+        prod_idx = 0
+        while f'prod_id_{prod_idx}' in form_data:
+            cat_key = form_data.get(f'prod_cat_{prod_idx}', '')
+            prod_id = form_data.get(f'prod_id_{prod_idx}', '')
+            prod_nombre = form_data.get(f'prod_nombre_{prod_idx}', '')
+            prod_precio = int(form_data.get(f'prod_precio_{prod_idx}', 0))
+            
+            if cat_key and prod_id and cat_key in config.get('categorias', {}):
+                cat_data = config['categorias'][cat_key]
+                if isinstance(cat_data, dict):
+                    for tipo in cat_data.get('tipos', []):
+                        if isinstance(tipo, dict) and tipo.get('id') == prod_id:
+                            tipo['nombre'] = prod_nombre
+                            tipo['precio_1000'] = prod_precio
+                            break
+            
+            prod_idx += 1
         
         with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
