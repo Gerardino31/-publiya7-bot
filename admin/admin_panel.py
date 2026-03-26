@@ -275,36 +275,37 @@ async def ver_productos(cliente_id: str):
                         prod_id = tipo.get('id', f'prod_{prod_idx}')
                         prod_nombre = tipo.get('nombre', 'Sin nombre')
                         
-                        # Detectar tipo de precio
+                        # Detectar tipo de precio y campo
+                        precio_field_name = ""
                         if 'precio_1000' in tipo:
                             precio_val = tipo.get('precio_1000', 0)
-                            precio_label = "Precio 1000 unid: $"
-                            precio_field = f'<input type="number" name="prod_precio_{prod_idx}" value="{precio_val}" style="padding: 5px; width: 100px;">'
+                            precio_field_name = f"prod_precio_{prod_idx}"
+                            default_label = "Precio 1000 unid"
                         elif 'precio_cm2_con_terminado' in tipo:
                             precio_val = tipo.get('precio_cm2_con_terminado', 0)
-                            precio_label = "Precio cm2 c/terminado: $"
-                            precio_field = f'<input type="number" name="prod_precio_cm2_{prod_idx}" value="{precio_val}" style="padding: 5px; width: 100px;">'
+                            precio_field_name = f"prod_precio_cm2_{prod_idx}"
+                            default_label = "Precio cm2 c/terminado"
                         elif 'precio_cm2_sin_terminado' in tipo:
                             precio_val = tipo.get('precio_cm2_sin_terminado', 0)
-                            precio_label = "Precio cm2 s/terminado: $"
-                            precio_field = f'<input type="number" name="prod_precio_cm2_{prod_idx}" value="{precio_val}" style="padding: 5px; width: 100px;">'
+                            precio_field_name = f"prod_precio_cm2_{prod_idx}"
+                            default_label = "Precio cm2 s/terminado"
                         elif 'precio_cm2' in tipo:
                             precio_val = tipo.get('precio_cm2', 0)
-                            precio_label = "Precio por cm2: $"
-                            precio_field = f'<input type="number" name="prod_precio_cm2_{prod_idx}" value="{precio_val}" style="padding: 5px; width: 100px;">'
+                            precio_field_name = f"prod_precio_cm2_{prod_idx}"
+                            default_label = "Precio por cm2"
                         else:
                             # Buscar cualquier campo de precio
                             precio_val = 0
-                            precio_label = "Precio: $"
+                            precio_field_name = f"prod_precio_{prod_idx}"
+                            default_label = "Precio"
                             for key in tipo.keys():
                                 if 'precio' in key.lower():
                                     precio_val = tipo.get(key, 0)
-                                    precio_label = f"{key.replace('_', ' ').title()}: $"
+                                    default_label = key.replace('_', ' ').title()
                                     break
-                            precio_field = f'<input type="number" name="prod_precio_{prod_idx}" value="{precio_val}" style="padding: 5px; width: 100px;">'
                         
-                        # Agregar step="0.1" para permitir decimales
-                        precio_field_con_step = precio_field.replace('type="number"', 'type="number" step="0.1"')
+                        # Obtener label personalizado o usar default
+                        precio_label_personalizado = tipo.get('precio_label', default_label)
                         
                         form_html += f"""
                         <div style="margin-bottom: 10px; padding: 10px; background: #f7fafc; border-radius: 5px; margin-left: 20px;">
@@ -312,8 +313,12 @@ async def ver_productos(cliente_id: str):
                             <input type="hidden" name="prod_id_{prod_idx}" value="{prod_id}">
                             <label style="font-weight: bold;">Producto:</label>
                             <input type="text" name="prod_nombre_{prod_idx}" value="{prod_nombre}" style="padding: 5px; width: 250px; margin: 0 10px;">
-                            <label>{precio_label}</label>
-                            {precio_field_con_step}
+                            <div style="margin-top: 8px;">
+                                <label>Label del precio:</label>
+                                <input type="text" name="prod_precio_label_{prod_idx}" value="{precio_label_personalizado}" style="padding: 5px; width: 200px; margin: 0 5px;">
+                                <label>Precio: $</label>
+                                <input type="number" name="{precio_field_name}" value="{precio_val}" step="0.1" style="padding: 5px; width: 100px;">
+                            </div>
                         </div>
                         """
                         prod_idx += 1
@@ -376,6 +381,11 @@ async def guardar_productos(request: Request, cliente_id: str):
                     for tipo in cat_data.get('tipos', []):
                         if isinstance(tipo, dict) and tipo.get('id') == prod_id:
                             tipo['nombre'] = prod_nombre
+                            
+                            # Actualizar label del precio si existe
+                            precio_label = form_data.get(f'prod_precio_label_{prod_idx}', '')
+                            if precio_label:
+                                tipo['precio_label'] = precio_label
                             
                             # Actualizar el precio según el campo que exista
                             if f'prod_precio_{prod_idx}' in form_data:
