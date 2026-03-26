@@ -306,7 +306,6 @@ async def ver_productos(cliente_id: str):
 
 @router.post("/cliente/{cliente_id}/productos/guardar")
 async def guardar_productos(
-    request: Request,
     cliente_id: str,
     prod_id_0: str = Form(""),
     prod_id_1: str = Form(""),
@@ -321,32 +320,35 @@ async def guardar_productos(
     precio_4: int = Form(0),
     precio_5: int = Form(0),
 ):
-    config_path = Path(f"clientes/configs/{cliente_id}.json")
-    
-    if not config_path.exists():
-        return HTMLResponse(content="<h1>Cliente no encontrado</h1>")
-    
-    with open(config_path, 'r', encoding='utf-8') as f:
-        config = json.load(f)
-    
-    # Actualizar precios
-    prod_ids = [prod_id_0, prod_id_1, prod_id_2, prod_id_3, prod_id_4, prod_id_5]
-    precios = [precio_0, precio_1, precio_2, precio_3, precio_4, precio_5]
-    
-    for prod_id_str, nuevo_precio in zip(prod_ids, precios):
-        if prod_id_str and "|" in prod_id_str:
-            cat_key, prod_id = prod_id_str.split("|")
-            if cat_key in config.get('categorias', {}):
-                cat_data = config['categorias'][cat_key]
-                if isinstance(cat_data, dict):
-                    for tipo in cat_data.get('tipos', []):
-                        if isinstance(tipo, dict) and tipo.get('id') == prod_id:
-                            tipo['precio_1000'] = nuevo_precio
-                            break
-    
-    with open(config_path, 'w', encoding='utf-8') as f:
-        json.dump(config, f, indent=2, ensure_ascii=False)
-    
-    return RedirectResponse(url=f"/admin/cliente/{cliente_id}/productos", status_code=302)
+    try:
+        config_path = Path(f"clientes/configs/{cliente_id}.json")
+        
+        if not config_path.exists():
+            return HTMLResponse(content="<h1>Cliente no encontrado</h1>")
+        
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        
+        # Actualizar precios
+        prod_ids = [prod_id_0, prod_id_1, prod_id_2, prod_id_3, prod_id_4, prod_id_5]
+        precios = [precio_0, precio_1, precio_2, precio_3, precio_4, precio_5]
+        
+        for prod_id_str, nuevo_precio in zip(prod_ids, precios):
+            if prod_id_str and "|" in prod_id_str:
+                cat_key, prod_id = prod_id_str.split("|")
+                if cat_key in config.get('categorias', {}):
+                    cat_data = config['categorias'][cat_key]
+                    if isinstance(cat_data, dict):
+                        for tipo in cat_data.get('tipos', []):
+                            if isinstance(tipo, dict) and tipo.get('id') == prod_id:
+                                tipo['precio_1000'] = nuevo_precio
+                                break
+        
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        
+        return RedirectResponse(url=f"/admin/cliente/{cliente_id}/productos", status_code=302)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>Error al guardar</h1><p>{str(e)}</p><a href='/admin/cliente/{cliente_id}/productos'>Volver</a>")
 
 print("✅ Panel simple cargado")
