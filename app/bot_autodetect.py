@@ -1,6 +1,6 @@
 """
 bot_autodetect.py - Bot con detección automática de clientes
-Detecta el cliente por número de WhatsApp o código de acceso
+Detecta el cliente por número de WhatsApp, código de acceso o texto del mensaje
 """
 
 import os
@@ -15,6 +15,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.loader import ConfigLoader, get_config
 from app.router import MessageRouter
 from app.config import config
+from app.cliente_cache import cliente_cache
 from database import db
 
 # Configurar logging desde variables de entorno
@@ -246,6 +247,57 @@ def procesar_mensaje_por_codigo(mensaje: str, user_id: str,
         user_id=user_id,
         codigo=codigo
     )
+
+
+def detectar_y_procesar_mensaje(mensaje: str, user_id: str, 
+                                 canal: str = 'whatsapp') -> Dict:
+    """
+    Función principal para SaaS:
+    1. Detecta si el usuario ya tiene cliente asignado
+    2. Si no, detecta el cliente por el texto del mensaje
+    3. Guarda la relación para futuros mensajes
+    """
+    logger.info(f"SaaS Webhook: usuario={user_id}, mensaje='{mensaje[:50]}...'")
+    
+    # 1. Verificar si el usuario ya tiene cliente asignado
+    cliente_id = cliente_cache.obtener_cliente_de_usuario(user_id)
+    
+    if cliente_id:
+        logger.info(f"Usuario {user_id} ya tiene cliente asignado: {cliente_id}")
+        # Usar el cliente asignado
+        return bot_autodetect.procesar_mensaje(
+            mensaje=mensaje,
+            user_id=user_id,
+            identificador=cliente_id,
+            canal=canal
+        )
+    
+    # 2. Si no tiene cliente asignado, detectar por texto
+    cliente_id_detectado = cliente_cache.detectar_cliente_por_texto(mensaje)
+    
+    if cliente_id_detectado:
+        logger.info(f"Cliente detectado por texto: {cliente_id_detectado}")
+        # Guardar relación para futuros mensajes
+        cliente_cache.guardar_relacion_usuario_cliente(user_id, cliente_id_detectado)
+        
+        # Procesar mensaje
+        return bot_autodetect.procesar_mensaje(
+            mensaje=mensaje,
+            user_id=user_id,
+            identificador=cliente_id_detectado,
+            canal=canal
+        )
+    
+    # 3. Si no se detectó cliente, usar default o pedir código
+    logger.warning(f"No se detectó cliente para usuario {user_id}")
+    return {
+        'texto': "👋 ¡Hola! Bienvenido a BotlyPro.\n\n"
+                 "Para atenderte mejor, por favor indica el nombre del negocio "
+                 "con el que deseas comunicarte.\n\n"
+                 "Ejemplo: 'Publiya7' o 'Imprenta XYZ'",
+        'tipo': 'solicitud_cliente',
+        'cliente_detectado': False
+    }
 
 
 # Prueba
