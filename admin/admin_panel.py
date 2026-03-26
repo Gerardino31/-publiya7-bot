@@ -264,15 +264,43 @@ async def ver_productos(cliente_id: str):
                     if isinstance(tipo, dict):
                         prod_id = tipo.get('id', f'prod_{prod_idx}')
                         prod_nombre = tipo.get('nombre', 'Sin nombre')
-                        precio_1000 = tipo.get('precio_1000', 0)
+                        
+                        # Detectar tipo de precio
+                        if 'precio_1000' in tipo:
+                            precio_val = tipo.get('precio_1000', 0)
+                            precio_label = "Precio 1000 unid: $"
+                            precio_field = f'<input type="number" name="prod_precio_{prod_idx}" value="{precio_val}" style="padding: 5px; width: 100px;">'
+                        elif 'precio_cm2_con_terminado' in tipo:
+                            precio_val = tipo.get('precio_cm2_con_terminado', 0)
+                            precio_label = "Precio cm2 c/terminado: $"
+                            precio_field = f'<input type="number" name="prod_precio_cm2_{prod_idx}" value="{precio_val}" style="padding: 5px; width: 100px;">'
+                        elif 'precio_cm2_sin_terminado' in tipo:
+                            precio_val = tipo.get('precio_cm2_sin_terminado', 0)
+                            precio_label = "Precio cm2 s/terminado: $"
+                            precio_field = f'<input type="number" name="prod_precio_cm2_{prod_idx}" value="{precio_val}" style="padding: 5px; width: 100px;">'
+                        elif 'precio_cm2' in tipo:
+                            precio_val = tipo.get('precio_cm2', 0)
+                            precio_label = "Precio por cm2: $"
+                            precio_field = f'<input type="number" name="prod_precio_cm2_{prod_idx}" value="{precio_val}" style="padding: 5px; width: 100px;">'
+                        else:
+                            # Buscar cualquier campo de precio
+                            precio_val = 0
+                            precio_label = "Precio: $"
+                            for key in tipo.keys():
+                                if 'precio' in key.lower():
+                                    precio_val = tipo.get(key, 0)
+                                    precio_label = f"{key.replace('_', ' ').title()}: $"
+                                    break
+                            precio_field = f'<input type="number" name="prod_precio_{prod_idx}" value="{precio_val}" style="padding: 5px; width: 100px;">'
+                        
                         form_html += f"""
                         <div style="margin-bottom: 10px; padding: 10px; background: #f7fafc; border-radius: 5px; margin-left: 20px;">
                             <input type="hidden" name="prod_cat_{prod_idx}" value="{cat_key}">
                             <input type="hidden" name="prod_id_{prod_idx}" value="{prod_id}">
                             <label style="font-weight: bold;">Producto:</label>
                             <input type="text" name="prod_nombre_{prod_idx}" value="{prod_nombre}" style="padding: 5px; width: 250px; margin: 0 10px;">
-                            <label>Precio 1000 unid: $</label>
-                            <input type="number" name="prod_precio_{prod_idx}" value="{precio_1000}" style="padding: 5px; width: 100px;">
+                            <label>{precio_label}</label>
+                            {precio_field}
                         </div>
                         """
                         prod_idx += 1
@@ -328,7 +356,6 @@ async def guardar_productos(request: Request, cliente_id: str):
             cat_key = form_data.get(f'prod_cat_{prod_idx}', '')
             prod_id = form_data.get(f'prod_id_{prod_idx}', '')
             prod_nombre = form_data.get(f'prod_nombre_{prod_idx}', '')
-            prod_precio = int(form_data.get(f'prod_precio_{prod_idx}', 0))
             
             if cat_key and prod_id and cat_key in config.get('categorias', {}):
                 cat_data = config['categorias'][cat_key]
@@ -336,7 +363,24 @@ async def guardar_productos(request: Request, cliente_id: str):
                     for tipo in cat_data.get('tipos', []):
                         if isinstance(tipo, dict) and tipo.get('id') == prod_id:
                             tipo['nombre'] = prod_nombre
-                            tipo['precio_1000'] = prod_precio
+                            
+                            # Actualizar el precio según el campo que exista
+                            if f'prod_precio_{prod_idx}' in form_data:
+                                tipo['precio_1000'] = int(form_data.get(f'prod_precio_{prod_idx}', 0))
+                            elif f'prod_precio_cm2_{prod_idx}' in form_data:
+                                # Determinar qué campo de cm2 actualizar
+                                if 'precio_cm2_con_terminado' in tipo:
+                                    tipo['precio_cm2_con_terminado'] = int(form_data.get(f'prod_precio_cm2_{prod_idx}', 0))
+                                elif 'precio_cm2_sin_terminado' in tipo:
+                                    tipo['precio_cm2_sin_terminado'] = int(form_data.get(f'prod_precio_cm2_{prod_idx}', 0))
+                                elif 'precio_cm2' in tipo:
+                                    tipo['precio_cm2'] = int(form_data.get(f'prod_precio_cm2_{prod_idx}', 0))
+                                else:
+                                    # Buscar cualquier campo de precio y actualizarlo
+                                    for key in list(tipo.keys()):
+                                        if 'precio' in key.lower():
+                                            tipo[key] = int(form_data.get(f'prod_precio_cm2_{prod_idx}', 0))
+                                            break
                             break
             
             prod_idx += 1
