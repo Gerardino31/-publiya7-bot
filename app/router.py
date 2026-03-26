@@ -558,8 +558,11 @@ Total: ${estado['total']:,} COP
         # Calcular tiempo de entrega segun categoria y cantidad
         tiempo_entrega = self._calcular_tiempo_entrega(cat_id, cantidad if isinstance(cantidad, int) else 0)
         
-        # Calcular descuento aplicado
-        descuento_info = self._calcular_descuento_info(producto, cantidad, cat.get('unidad_base', 1000))
+        # Calcular descuento aplicado (solo para cantidades numericas, no para medidas)
+        if isinstance(cantidad, int):
+            descuento_info = self._calcular_descuento_info(producto, cantidad, cat.get('unidad_base', 1000))
+        else:
+            descuento_info = None
         
         if descuento_info:
             return f"""[COTIZACION]
