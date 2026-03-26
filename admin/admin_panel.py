@@ -5,6 +5,7 @@ admin_panel.py - Panel de Administración BotlyPro (Versión Simple)
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pathlib import Path
+from datetime import datetime
 import json
 
 router = APIRouter(prefix="/admin")
@@ -74,7 +75,10 @@ async def dashboard():
             <h2>🤖 BotlyPro</h2>
         </div>
         <div style="padding: 30px;">
-            <h1>Dashboard</h1>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h1>Dashboard</h1>
+                <a href="/admin/nuevo-cliente" style="background: #48bb78; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">➕ Nuevo Cliente</a>
+            </div>
             <p>Total Clientes: {len(clientes)}</p>
             <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
                 <tr style="background: #667eea; color: white;">
@@ -416,5 +420,317 @@ async def guardar_productos(request: Request, cliente_id: str):
         return RedirectResponse(url=f"/admin/cliente/{cliente_id}/productos", status_code=302)
     except Exception as e:
         return HTMLResponse(content=f"<h1>Error al guardar</h1><p>{str(e)}</p><a href='/admin/cliente/{cliente_id}/productos'>Volver</a>")
+
+# ============================================
+# NUEVO CLIENTE - ONBOARDING
+# ============================================
+
+@router.get("/nuevo-cliente")
+async def nuevo_cliente_form():
+    """Muestra formulario para crear nuevo cliente"""
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Nuevo Cliente - BotlyPro</title>
+        <style>
+            body { font-family: Arial; margin: 0; background: #f7fafc; }
+            .header { background: #2d3748; color: white; padding: 20px; }
+            .container { max-width: 800px; margin: 30px auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .form-group { margin-bottom: 20px; }
+            label { display: block; font-weight: bold; margin-bottom: 5px; color: #4a5568; }
+            input, select, textarea { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 5px; font-size: 14px; }
+            textarea { min-height: 80px; resize: vertical; }
+            .btn { padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+            .btn-primary { background: #667eea; color: white; }
+            .btn-secondary { background: #e2e8f0; color: #4a5568; margin-left: 10px; }
+            .section { border-left: 4px solid #667eea; padding-left: 20px; margin: 30px 0; }
+            h2 { color: #2d3748; }
+            .plantilla-info { background: #ebf8ff; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h2>🤖 BotlyPro</h2>
+        </div>
+        <div class="container">
+            <h1>➕ Nuevo Cliente</h1>
+            <p style="color: #718096;">Completa la información para crear un nuevo negocio en BotlyPro.</p>
+            
+            <form method="POST" action="/admin/nuevo-cliente">
+                
+                <div class="section">
+                    <h2>🏢 Datos del Negocio</h2>
+                    
+                    <div class="form-group">
+                        <label>Nombre del Negocio *</label>
+                        <input type="text" name="nombre" required placeholder="Ej: Publiya7">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>ID del Cliente *</label>
+                        <input type="text" name="cliente_id" required placeholder="Ej: publiya7 (solo minúsculas, sin espacios)">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Eslogan</label>
+                        <input type="text" name="eslogan" placeholder="Ej: Publicidad al Instante">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Teléfono WhatsApp *</label>
+                        <input type="text" name="whatsapp" required placeholder="Ej: +57 314 390 9874">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" placeholder="Ej: contacto@negocio.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Ciudad</label>
+                        <input type="text" name="ciudad" placeholder="Ej: Medellín">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Dirección</label>
+                        <textarea name="direccion" placeholder="Dirección del negocio"></textarea>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>🤖 Configuración del Bot</h2>
+                    
+                    <div class="form-group">
+                        <label>Plantilla Base</label>
+                        <select name="plantilla">
+                            <option value="imprenta">📇 Imprenta (Tarjetas, Volantes, Sellos...)</option>
+                            <option value="restaurante">🍽️ Restaurante (Menú, Pedidos, Domicilios...)</option>
+                            <option value="tienda">🛍️ Tienda (Productos, Inventario...)</option>
+                            <option value="vacia">📝 Empezar en blanco</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Mensaje de Bienvenida</label>
+                        <textarea name="mensaje_bienvenida" placeholder="¡Hola! Bienvenido a [nombre]..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Tono del Bot</label>
+                        <select name="tono">
+                            <option value="formal">Formal</option>
+                            <option value="casual" selected>Casual / Amigable</option>
+                            <option value="divertido">Divertido / Creativo</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>💎 Plan SaaS</h2>
+                    
+                    <div class="form-group">
+                        <label>Plan</label>
+                        <select name="plan">
+                            <option value="basico">Básico - $49/mes (1,000 mensajes)</option>
+                            <option value="pro" selected>Pro - $99/mes (5,000 mensajes)</option>
+                            <option value="enterprise">Enterprise - $199/mes (Ilimitado)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px;">
+                    <button type="submit" class="btn btn-primary">✅ Crear Cliente</button>
+                    <a href="/admin/dashboard" class="btn btn-secondary" style="text-decoration: none;">Cancelar</a>
+                </div>
+                
+            </form>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
+
+@router.post("/nuevo-cliente")
+async def crear_nuevo_cliente(
+    nombre: str = Form(...),
+    cliente_id: str = Form(...),
+    eslogan: str = Form(""),
+    whatsapp: str = Form(...),
+    email: str = Form(""),
+    ciudad: str = Form(""),
+    direccion: str = Form(""),
+    plantilla: str = Form("imprenta"),
+    mensaje_bienvenida: str = Form(""),
+    tono: str = Form("casual"),
+    plan: str = Form("pro")
+):
+    """Crea el nuevo cliente con configuración inicial"""
+    import os
+    
+    try:
+        # Normalizar cliente_id
+        cliente_id = cliente_id.lower().strip().replace(" ", "_")
+        
+        # Verificar que no exista
+        config_path = Path(f"clientes/configs/{cliente_id}.json")
+        if config_path.exists():
+            return HTMLResponse(content=f"<h1>❌ Error</h1><p>El cliente '{cliente_id}' ya existe.</p><a href='/admin/nuevo-cliente'>Volver</a>")
+        
+        # Cargar plantilla base
+        plantilla_config = cargar_plantilla(plantilla)
+        
+        # Crear configuración del cliente
+        config = {
+            "cliente_id": cliente_id,
+            "nombre": nombre,
+            "eslogan": eslogan or f"Bienvenido a {nombre}",
+            "telefono": whatsapp,
+            "whatsapp": whatsapp,
+            "email": email,
+            "ciudad": ciudad,
+            "direccion": direccion,
+            "plan": plan,
+            "estado": "activo",
+            "fecha_registro": datetime.now().isoformat(),
+            "mensaje_bienvenida": mensaje_bienvenida or plantilla_config.get("mensaje_bienvenida", f"¡Hola! Bienvenido a {nombre}"),
+            "tono": tono,
+            "categorias": plantilla_config.get("categorias", {}),
+            "frases_cortesia": plantilla_config.get("frases_cortesia", {}),
+            "tiempo_entrega_default": "2-5 días hábiles"
+        }
+        
+        # Guardar archivo JSON
+        os.makedirs("clientes/configs", exist_ok=True)
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        
+        # Crear entrada en la base de datos
+        try:
+            from database.database_saas import db_saas
+            conn = db_saas._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO clientes (cliente_id, nombre, eslogan, telefono, whatsapp, email, 
+                                    ciudad, direccion, config_json, estado, plan)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (cliente_id, nombre, config["eslogan"], whatsapp, whatsapp, email,
+                  ciudad, direccion, json.dumps(config), "activo", plan))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"⚠️ Error guardando en BD: {e}")
+        
+        # Éxito
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Cliente Creado - BotlyPro</title></head>
+        <body style="font-family: Arial; margin: 0; background: #f7fafc;">
+            <div style="background: #2d3748; color: white; padding: 20px;">
+                <h2>🤖 BotlyPro</h2>
+            </div>
+            <div style="max-width: 600px; margin: 50px auto; background: white; padding: 40px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h1 style="color: #48bb78;">✅ ¡Cliente Creado!</h1>
+                <p><strong>{nombre}</strong> ha sido registrado exitosamente.</p>
+                <p>ID: <code>{cliente_id}</code></p>
+                <p>Plan: {plan.upper()}</p>
+                <br>
+                <a href="/admin/dashboard" style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px;">Ir al Dashboard</a>
+                <a href="/admin/cliente/{cliente_id}" style="background: #48bb78; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-left: 10px;">Configurar Productos</a>
+            </div>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html)
+        
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>❌ Error al crear cliente</h1><p>{str(e)}</p><a href='/admin/nuevo-cliente'>Volver</a>")
+
+def cargar_plantilla(tipo: str) -> dict:
+    """Carga una plantilla base según el tipo de negocio"""
+    
+    plantillas = {
+        "imprenta": {
+            "mensaje_bienvenida": "¡Hola! 👋 Bienvenido a nuestro servicio de imprenta. ¿En qué podemos ayudarte hoy?",
+            "categorias": {
+                "tarjetas": {
+                    "nombre": "🎴 Tarjetas de Presentación",
+                    "tipo_cotizacion": "cantidad",
+                    "unidad_base": 1000,
+                    "tipos": [
+                        {"id": "sencilla_uv", "nombre": "Sencilla Brillo UV", "precio_1000": 75000},
+                        {"id": "mate", "nombre": "Mate Premium", "precio_1000": 119000}
+                    ]
+                },
+                "volantes": {
+                    "nombre": "📄 Volantes / Flyers",
+                    "tipo_cotizacion": "cantidad",
+                    "unidad_base": 1000,
+                    "tipos": [
+                        {"id": "volante_14", "nombre": "Cuarto de Carta", "precio_1000": 60000, "precio_2000": 114000, "precio_5000": 270000},
+                        {"id": "volante_12", "nombre": "Media Carta", "precio_1000": 90000, "precio_2000": 171000, "precio_5000": 405000}
+                    ]
+                }
+            },
+            "frases_cortesia": {
+                "bienvenida": ["¡Hola!", "¡Buen día!", "¡Bienvenido!"],
+                "excelente_eleccion": ["¡Excelente elección!", "¡Perfecto!"],
+                "cotizando": ["Estoy cotizando...", "Un momento por favor..."]
+            }
+        },
+        "restaurante": {
+            "mensaje_bienvenida": "¡Hola! 🍽️ Bienvenido a nuestro restaurante. ¿Qué te gustaría ordenar hoy?",
+            "categorias": {
+                "entradas": {
+                    "nombre": "🥗 Entradas",
+                    "tipo_cotizacion": "unitario",
+                    "tipos": [
+                        {"id": "ensalada", "nombre": "Ensalada César", "precio_unitario": 18000},
+                        {"id": "sopa", "nombre": "Sopa del Día", "precio_unitario": 12000}
+                    ]
+                },
+                "platos_fuertes": {
+                    "nombre": "🍖 Platos Fuertes",
+                    "tipo_cotizacion": "unitario",
+                    "tipos": [
+                        {"id": "pollo", "nombre": "Pechuga a la Plancha", "precio_unitario": 35000},
+                        {"id": "carne", "nombre": "Filete de Res", "precio_unitario": 45000}
+                    ]
+                }
+            },
+            "frases_cortesia": {
+                "bienvenida": ["¡Buen provecho!", "¡Hola!"],
+                "excelente_eleccion": ["¡Excelente elección!", "¡Delicioso!"]
+            }
+        },
+        "tienda": {
+            "mensaje_bienvenida": "¡Hola! 🛍️ Bienvenido a nuestra tienda. ¿Qué estás buscando hoy?",
+            "categorias": {
+                "ropa": {
+                    "nombre": "👕 Ropa",
+                    "tipo_cotizacion": "unitario",
+                    "tipos": [
+                        {"id": "camiseta", "nombre": "Camiseta Básica", "precio_unitario": 45000},
+                        {"id": "pantalon", "nombre": "Pantalón Jeans", "precio_unitario": 89000}
+                    ]
+                }
+            },
+            "frases_cortesia": {
+                "bienvenida": ["¡Hola!", "¡Bienvenido!"],
+                "excelente_eleccion": ["¡Gran elección!"]
+            }
+        },
+        "vacia": {
+            "mensaje_bienvenida": "¡Hola! Bienvenido. ¿En qué podemos ayudarte?",
+            "categorias": {},
+            "frases_cortesia": {
+                "bienvenida": ["¡Hola!"],
+                "excelente_eleccion": ["¡Perfecto!"]
+            }
+        }
+    }
+    
+    return plantillas.get(tipo, plantillas["vacia"])
 
 print("✅ Panel simple cargado")
