@@ -484,13 +484,14 @@ class MessageRouter:
     def _procesar_confirmacion(self, msg: str, estado: dict, user_id: str, cliente_id: str) -> Tuple[str, dict]:
         """Procesa opciones del carrito: 1-Otro, 2-Ver, 3-Finalizar, 4-Cancelar."""
         
-        # Opciones del carrito
-        if msg in ["1", "1️⃣", "otro", "agregar", "mas"]:
+        # Opciones del carrito (después de agregar producto)
+        # Mensaje muestra: 1-Otro, 2-Ver, 3-Finalizar, 4-Cancelar
+        if msg in ["1", "1️⃣", "otro", "agregar", "mas", "agregar otro"]:
             # Volver a seleccionar categoría
             estado.update({'paso': 0, 'categoria': None, 'producto': None, 'cantidad': None, 'total': 0})
             return self.generar_menu_principal(), {'tipo': 'menu_principal'}
         
-        elif msg in ["2", "2️⃣", "ver", "carrito"]:
+        elif msg in ["2", "2️⃣", "ver", "carrito", "ver carrito"]:
             # Ver carrito
             if self.carrito:
                 mensaje = self.carrito.ver_carrito(cliente_id, user_id)
@@ -498,7 +499,7 @@ class MessageRouter:
             else:
                 return "🛒 Carrito no disponible.", {'tipo': 'error'}
         
-        elif msg in ["3", "3️⃣", "finalizar", "pedido", "comprar"]:
+        elif msg in ["3", "3️⃣", "finalizar", "pedido", "comprar", "finalizar pedido"]:
             # Finalizar pedido - mostrar resumen
             if self.carrito:
                 mensaje = self.carrito.ver_carrito(cliente_id, user_id, mostrar_resumen=True)
@@ -508,7 +509,7 @@ class MessageRouter:
                 # Fallback a pedido simple
                 return self._finalizar_pedido_simple(estado, user_id, cliente_id)
         
-        elif msg in ["4", "4️⃣", "cancelar", "eliminar"]:
+        elif msg in ["4", "4️⃣", "cancelar", "eliminar", "cancelar carrito"]:
             # Cancelar carrito
             if self.carrito:
                 mensaje = self.carrito.cancelar_carrito(cliente_id, user_id)

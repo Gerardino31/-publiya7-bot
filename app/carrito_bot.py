@@ -149,9 +149,10 @@ class CarritoBot:
             lineas.append("3️⃣ Cancelar todo")
         else:
             lineas.append("¿Qué deseas hacer?")
-            lineas.append("1️⃣ FINALIZAR pedido")
-            lineas.append("2️⃣ Agregar más productos")
-            lineas.append("3️⃣ Cancelar carrito")
+            lineas.append("1️⃣ Agregar OTRO producto")
+            lineas.append("2️⃣ VER carrito completo")
+            lineas.append("3️⃣ FINALIZAR pedido")
+            lineas.append("4️⃣ CANCELAR carrito")
         
         return "\n".join(lineas)
     
