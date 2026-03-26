@@ -305,6 +305,7 @@ async def ver_productos(cliente_id: str):
     return HTMLResponse(content=html)
 
 @router.post("/cliente/{cliente_id}/productos/guardar")
+@router.get("/cliente/{cliente_id}/productos/guardar")
 async def guardar_productos(
     cliente_id: str,
     prod_id_0: str = Form(""),
