@@ -1063,6 +1063,9 @@ async def ver_pedido_detalle(pedido_id: int):
             conn.close()
             return HTMLResponse(content="<h1>Pedido no encontrado</h1><a href='/admin/pedidos'>Volver</a>")
         
+        # Convertir sqlite3.Row a dict
+        pedido = dict(pedido)
+        
         # Obtener items del pedido
         cursor.execute("""
             SELECT * FROM pedido_items WHERE pedido_id = ?
@@ -1070,6 +1073,9 @@ async def ver_pedido_detalle(pedido_id: int):
         
         items = cursor.fetchall()
         conn.close()
+        
+        # Convertir items a dict
+        items = [dict(item) for item in items]
         
         # Generar filas de productos
         filas_items = ""
