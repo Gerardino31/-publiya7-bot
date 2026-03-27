@@ -355,16 +355,24 @@ class MessageRouter:
     def _cargar_estado(self, cliente_id: str, user_id: str) -> Dict:
         """Carga estado desde BD o crea uno nuevo."""
         if db:
-            estado_bd = db.obtener_estado(cliente_id, user_id)
-            if estado_bd:
-                return {
-                    'paso': estado_bd.get('paso', 0),
-                    'categoria': estado_bd.get('categoria'),
-                    'producto': estado_bd.get('producto'),
-                    'cantidad': estado_bd.get('cantidad'),
-                    'total': estado_bd.get('total', 0),
-                    'datos_extra': estado_bd.get('datos_extra', {})
-                }
+            try:
+                estado_bd = db.obtener_estado(cliente_id, user_id)
+                if estado_bd:
+                    print(f"[DEBUG] Estado cargado: {cliente_id}/{user_id} - paso {estado_bd.get('paso')} - cat {estado_bd.get('categoria')}")
+                    return {
+                        'paso': estado_bd.get('paso', 0),
+                        'categoria': estado_bd.get('categoria'),
+                        'producto': estado_bd.get('producto'),
+                        'cantidad': estado_bd.get('cantidad'),
+                        'total': estado_bd.get('total', 0),
+                        'datos_extra': estado_bd.get('datos_extra', {})
+                    }
+                else:
+                    print(f"[DEBUG] No hay estado previo para {cliente_id}/{user_id}, creando nuevo")
+            except Exception as e:
+                print(f"[ERROR] Excepción cargando estado: {e}")
+        else:
+            print(f"[WARNING] db es None, no se puede cargar estado")
         
         # Estado por defecto
         return {'paso': 0, 'categoria': None, 'producto': None, 'cantidad': None, 'total': 0}
@@ -372,7 +380,14 @@ class MessageRouter:
     def _guardar_estado(self, cliente_id: str, user_id: str, estado: Dict):
         """Guarda estado en BD."""
         if db:
-            db.guardar_estado(cliente_id, user_id, estado)
+            try:
+                resultado = db.guardar_estado(cliente_id, user_id, estado)
+                if not resultado:
+                    print(f"[ERROR] No se pudo guardar el estado para {cliente_id}/{user_id}")
+                else:
+                    print(f"[DEBUG] Estado guardado OK: {cliente_id}/{user_id} - paso {estado.get('paso')} - cat {estado.get('categoria')}")
+            except Exception as e:
+                print(f"[ERROR] Excepción guardando estado: {e}")
     
     def _limpiar_estado(self, cliente_id: str, user_id: str):
         """Limpia estado de la BD."""
