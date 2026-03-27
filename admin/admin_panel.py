@@ -1274,4 +1274,265 @@ async def eliminar_cliente(cliente_id: str):
     except Exception as e:
         return HTMLResponse(content=f"<h1>❌ Error al eliminar</h1><p>{str(e)}</p><a href='/admin/dashboard'>Volver</a>")
 
+# ============================================
+# LOGIN Y DASHBOARD PARA CLIENTES
+# ============================================
+
+@router.get("/cliente-login")
+async def cliente_login_page():
+    """Página de login para clientes"""
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Acceso Clientes - BotlyPro</title>
+        <style>
+            body { font-family: Arial; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+            .login-box { background: white; padding: 40px; border-radius: 15px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; width: 90%; }
+            h1 { color: #2d3748; margin-bottom: 10px; }
+            .subtitle { color: #718096; margin-bottom: 30px; }
+            input { display: block; margin: 15px 0; padding: 12px; width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+            button { padding: 12px 30px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; }
+            button:hover { background: #5a67d8; }
+            .back-link { margin-top: 20px; color: #667eea; text-decoration: none; display: inline-block; }
+        </style>
+    </head>
+    <body>
+        <div class="login-box">
+            <h1>🤖 BotlyPro</h1>
+            <p class="subtitle">Acceso para Clientes</p>
+            <form method="POST" action="/admin/cliente-login">
+                <input type="text" name="cliente_id" placeholder="ID de tu negocio (ej: publiya7)" required>
+                <input type="password" name="password" placeholder="Contraseña" required>
+                <button type="submit">Ingresar a mi Dashboard</button>
+            </form>
+            <a href="/admin/" class="back-link">← Volver al panel admin</a>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
+
+@router.post("/cliente-login")
+async def cliente_login(cliente_id: str = Form(""), password: str = Form("")):
+    """Autentica a un cliente"""
+    # Por ahora, la contraseña es el cliente_id + "2024"
+    # En producción, debería ser más seguro
+    password_esperada = f"{cliente_id}2024"
+    
+    # Verificar que el cliente existe
+    config_path = Path(f"clientes/configs/{cliente_id}.json")
+    if not config_path.exists():
+        return HTMLResponse(content="<h1>❌ Cliente no encontrado</h1><a href='/admin/cliente-login'>Volver</a>")
+    
+    if password != password_esperada:
+        return HTMLResponse(content="<h1>❌ Contraseña incorrecta</h1><a href='/admin/cliente-login'>Volver</a>")
+    
+    # Login exitoso - redirigir al dashboard del cliente
+    return RedirectResponse(url=f"/admin/cliente-dashboard/{cliente_id}", status_code=302)
+
+@router.get("/cliente-dashboard/{cliente_id}")
+async def cliente_dashboard(cliente_id: str):
+    """Dashboard de ventas para un cliente específico"""
+    
+    # Verificar que el cliente existe
+    config_path = Path(f"clientes/configs/{cliente_id}.json")
+    if not config_path.exists():
+        return HTMLResponse(content="<h1>❌ Cliente no encontrado</h1>")
+    
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+    
+    nombre_negocio = config.get('nombre', cliente_id)
+    
+    # Obtener estadísticas del cliente
+    stats = obtener_estadisticas_cliente(cliente_id)
+    
+    # Generar HTML del dashboard
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Dashboard - {nombre_negocio}</title>
+        <style>
+            body {{ font-family: Arial; margin: 0; background: #f7fafc; }}
+            .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; }}
+            .container {{ padding: 30px; max-width: 1200px; margin: 0 auto; }}
+            .kpi-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 30px 0; }}
+            .kpi-card {{ background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }}
+            .kpi-number {{ font-size: 36px; font-weight: bold; color: #667eea; margin: 10px 0; }}
+            .kpi-label {{ color: #718096; font-size: 14px; text-transform: uppercase; }}
+            .section {{ background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 20px 0; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 15px; }}
+            th {{ background: #667eea; color: white; padding: 12px; text-align: left; }}
+            td {{ padding: 12px; border-bottom: 1px solid #e2e8f0; }}
+            .estado-pendiente {{ color: #ecc94b; font-weight: bold; }}
+            .estado-pagado {{ color: #48bb78; font-weight: bold; }}
+            .logout {{ float: right; color: white; text-decoration: none; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 5px; }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h2>🤖 BotlyPro - {nombre_negocio}</h2>
+            <a href="/admin/cliente-login" class="logout">Cerrar Sesión</a>
+        </div>
+        
+        <div class="container">
+            <h1>📊 Dashboard de Ventas</h1>
+            
+            <!-- KPIs -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-label">💰 Ventas Totales</div>
+                    <div class="kpi-number">${stats['ventas_totales']:,}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">📦 Total Pedidos</div>
+                    <div class="kpi-number">{stats['total_pedidos']}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">🧾 Ticket Promedio</div>
+                    <div class="kpi-number">${stats['ticket_promedio']:,}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">👥 Clientes Únicos</div>
+                    <div class="kpi-number">{stats['clientes_unicos']}</div>
+                </div>
+            </div>
+            
+            <!-- Últimos pedidos -->
+            <div class="section">
+                <h3>📋 Últimos Pedidos</h3>
+                {generar_tabla_pedidos(stats['ultimos_pedidos'])}
+            </div>
+            
+            <!-- Productos más vendidos -->
+            <div class="section">
+                <h3>🛍️ Productos Más Vendidos</h3>
+                {generar_tabla_productos(stats['top_productos'])}
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
+
+def obtener_estadisticas_cliente(cliente_id: str) -> dict:
+    """Obtiene estadísticas de ventas para un cliente específico"""
+    stats = {
+        'ventas_totales': 0,
+        'total_pedidos': 0,
+        'ticket_promedio': 0,
+        'clientes_unicos': 0,
+        'ultimos_pedidos': [],
+        'top_productos': []
+    }
+    
+    try:
+        from database.database_saas import db_saas
+        conn = db_saas._get_connection()
+        cursor = conn.cursor()
+        
+        # Ventas totales y total pedidos
+        cursor.execute("""
+            SELECT COUNT(*) as total, COALESCE(SUM(total), 0) as ventas,
+                   COALESCE(AVG(total), 0) as promedio
+            FROM pedidos WHERE cliente_id = ?
+        """, (cliente_id,))
+        row = cursor.fetchone()
+        stats['total_pedidos'] = row['total'] or 0
+        stats['ventas_totales'] = int(row['ventas'] or 0)
+        stats['ticket_promedio'] = int(row['promedio'] or 0)
+        
+        # Clientes únicos
+        cursor.execute("""
+            SELECT COUNT(DISTINCT usuario_id) as unicos
+            FROM pedidos WHERE cliente_id = ?
+        """, (cliente_id,))
+        stats['clientes_unicos'] = cursor.fetchone()['unicos'] or 0
+        
+        # Últimos pedidos
+        cursor.execute("""
+            SELECT numero_orden, total, estado, creado_en
+            FROM pedidos WHERE cliente_id = ?
+            ORDER BY creado_en DESC LIMIT 10
+        """, (cliente_id,))
+        stats['ultimos_pedidos'] = [dict(row) for row in cursor.fetchall()]
+        
+        # Top productos
+        cursor.execute("""
+            SELECT nombre_producto, COUNT(*) as cantidad
+            FROM pedido_items pi
+            JOIN pedidos p ON pi.pedido_id = p.id
+            WHERE p.cliente_id = ?
+            GROUP BY nombre_producto
+            ORDER BY cantidad DESC LIMIT 5
+        """, (cliente_id,))
+        stats['top_productos'] = [dict(row) for row in cursor.fetchall()]
+        
+        conn.close()
+    except Exception as e:
+        print(f"⚠️ Error obteniendo estadísticas: {e}")
+    
+    return stats
+
+def generar_tabla_pedidos(pedidos: list) -> str:
+    """Genera tabla HTML de pedidos"""
+    if not pedidos:
+        return "<p style='color: #718096;'>No hay pedidos registrados</p>"
+    
+    filas = ""
+    for p in pedidos:
+        estado_class = f"estado-{p['estado']}"
+        filas += f"""
+        <tr>
+            <td>{p['numero_orden']}</td>
+            <td>${p['total']:,}</td>
+            <td class="{estado_class}">{p['estado'].upper()}</td>
+            <td>{p['creado_en'][:10]}</td>
+        </tr>
+        """
+    
+    return f"""
+    <table>
+        <thead>
+            <tr>
+                <th>Número</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+            </tr>
+        </thead>
+        <tbody>{filas}</tbody>
+    </table>
+    """
+
+def generar_tabla_productos(productos: list) -> str:
+    """Genera tabla HTML de productos más vendidos"""
+    if not productos:
+        return "<p style='color: #718096;'>No hay datos de productos</p>"
+    
+    filas = ""
+    for i, p in enumerate(productos, 1):
+        filas += f"""
+        <tr>
+            <td>{i}</td>
+            <td>{p['nombre_producto']}</td>
+            <td>{p['cantidad']} ventas</td>
+        </tr>
+        """
+    
+    return f"""
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Producto</th>
+                <th>Cantidad</th>
+            </tr>
+        </thead>
+        <tbody>{filas}</tbody>
+    </table>
+    """
+
 print("✅ Panel simple cargado")
