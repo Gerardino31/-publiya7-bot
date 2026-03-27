@@ -17,8 +17,8 @@ class DatabaseSaaS:
         self.init_database()
     
     def _get_connection(self):
-        """Obtiene conexión a la base de datos"""
-        conn = sqlite3.connect(self.db_path)
+        """Obtiene conexión a la base de datos con timeout"""
+        conn = sqlite3.connect(self.db_path, timeout=20.0)
         conn.row_factory = sqlite3.Row
         return conn
     
@@ -42,22 +42,28 @@ class DatabaseSaaS:
     
     def crear_carrito(self, cliente_id: str, usuario_id: str) -> int:
         """Crea un nuevo carrito para un usuario"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        # Calcular expiración (30 minutos)
-        expira = datetime.now() + timedelta(minutes=30)
-        
-        cursor.execute("""
-            INSERT INTO carritos (cliente_id, usuario_id, expira_en)
-            VALUES (?, ?, ?)
-        """, (cliente_id, usuario_id, expira))
-        
-        carrito_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
-        
-        return carrito_id
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            # Calcular expiración (30 minutos)
+            expira = datetime.now() + timedelta(minutes=30)
+            
+            cursor.execute("""
+                INSERT INTO carritos (cliente_id, usuario_id, expira_en)
+                VALUES (?, ?, ?)
+            """, (cliente_id, usuario_id, expira))
+            
+            carrito_id = cursor.lastrowid
+            conn.commit()
+            conn.close()
+            
+            return carrito_id
+        except sqlite3.IntegrityError:
+            # El carrito ya existe, obtener el ID
+            conn.close()
+            carrito = self.obtener_carrito_activo(cliente_id, usuario_id)
+            return carrito['id'] if carrito else None
     
     def obtener_carrito_activo(self, cliente_id: str, usuario_id: str) -> Optional[Dict]:
         """Obtiene el carrito activo de un usuario, o crea uno nuevo"""
