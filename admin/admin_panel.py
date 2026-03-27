@@ -105,7 +105,15 @@ async def dashboard():
     # Generar filas de la tabla
     filas = ""
     for c in clientes:
-        filas += f"<tr><td>{c['id']}</td><td>{c['nombre']}</td><td>{c['telefono']}</td><td><a href='/admin/cliente/{c['id']}' style='background: #667eea; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;'>Ver</a></td></tr>"
+        filas += f"""<tr>
+            <td style="padding: 15px; border-bottom: 1px solid #e2e8f0;">{c['id']}</td>
+            <td style="padding: 15px; border-bottom: 1px solid #e2e8f0;">{c['nombre']}</td>
+            <td style="padding: 15px; border-bottom: 1px solid #e2e8f0;">{c['telefono']}</td>
+            <td style="padding: 15px; border-bottom: 1px solid #e2e8f0;">
+                <a href="/admin/cliente/{c['id']}" style="background: #667eea; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; margin-right: 5px;">Ver</a>
+                <a href="/admin/cliente/{c['id']}/eliminar" style="background: #f56565; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;" onclick="return confirm('¿Eliminar este cliente?')">Eliminar</a>
+            </td>
+        </tr>"""
     
     html = f"""
     <!DOCTYPE html>
@@ -1221,5 +1229,49 @@ async def actualizar_estado_pedido(pedido_id: int, nuevo_estado: str = Form(...)
     except Exception as e:
         print(f"❌ Error actualizando estado: {e}")
         return HTMLResponse(content=f"<h1>Error actualizando estado</h1><p>{str(e)}</p><a href='/admin/pedido/{pedido_id}'>Volver</a>")
+
+@router.get("/cliente/{cliente_id}/eliminar")
+async def eliminar_cliente(cliente_id: str):
+    """Elimina un cliente del sistema"""
+    try:
+        # No permitir eliminar publiya7 (cliente principal)
+        if cliente_id == 'publiya7':
+            return HTMLResponse(content="<h1>❌ No se puede eliminar el cliente principal</h1><a href='/admin/dashboard'>Volver</a>")
+        
+        # Eliminar archivo JSON
+        config_path = Path(f"clientes/configs/{cliente_id}.json")
+        if config_path.exists():
+            config_path.unlink()
+        
+        # Eliminar de la base de datos
+        try:
+            from database.database_saas import db_saas
+            conn = db_saas._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM clientes WHERE cliente_id = ?", (cliente_id,))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"⚠️ Error eliminando de BD: {e}")
+        
+        return HTMLResponse(content=f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Cliente Eliminado - BotlyPro</title></head>
+        <body style="font-family: Arial; margin: 0; background: #f7fafc;">
+            <div style="background: #2d3748; color: white; padding: 20px;">
+                <h2>🤖 BotlyPro</h2>
+            </div>
+            <div style="max-width: 600px; margin: 50px auto; background: white; padding: 40px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h1 style="color: #48bb78;">✅ Cliente Eliminado</h1>
+                <p>El cliente <strong>{cliente_id}</strong> ha sido eliminado.</p>
+                <br>
+                <a href="/admin/dashboard" style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px;">Volver al Dashboard</a>
+            </div>
+        </body>
+        </html>
+        """)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>❌ Error al eliminar</h1><p>{str(e)}</p><a href='/admin/dashboard'>Volver</a>")
 
 print("✅ Panel simple cargado")
