@@ -117,13 +117,16 @@ class MessageRouter:
 
 {pregunta}"""
         
+        # Emojis para números
+        numeros_emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟']
+        
         categorias = self.config.get('categorias', {})
         for i, (cat_id, cat_data) in enumerate(categorias.items(), 1):
-            emoji = self._get_emoji_categoria(cat_id)
-            menu += f"\n{i}. {cat_data.get('nombre', cat_id)}"
+            emoji_numero = numeros_emojis[i-1] if i <= len(numeros_emojis) else f"{i}."
+            menu += f"\n{emoji_numero} {cat_data.get('nombre', cat_id)}"
         
-        menu += "\n\nEscriba el numero o nombre de la categoria que necesite."
-        menu += "\n(Tambien puede escribir 'menu' en cualquier momento para volver aqui)"
+        menu += "\n\nEscribe el número o nombre de la categoría que necesites."
+        menu += "\n(También puedes escribir 'menu' en cualquier momento para volver aquí)"
         return menu
     
     def _get_emoji_categoria(self, cat_id: str) -> str:
@@ -149,11 +152,15 @@ class MessageRouter:
         if not cat:
             return self._frase_cortesia('fallback')
         
-        menu = f"[MENU] {cat.get('nombre', 'Productos').upper()}\n\n"
+        menu = f"📋 {cat.get('nombre', 'Productos').upper()}\n\n"
+        
+        # Emojis para números
+        numeros_emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟']
         
         for i, producto in enumerate(cat.get('tipos', []), 1):
+            emoji_numero = numeros_emojis[i-1] if i <= len(numeros_emojis) else f"{i}."
             nombre = producto.get('nombre', f'Producto {i}')
-            menu += f"{i}. {nombre}"
+            menu += f"{emoji_numero} {nombre}"
             
             # Mostrar precio segun tipo
             tipo_cot = cat.get('tipo_cotizacion', 'cantidad')
