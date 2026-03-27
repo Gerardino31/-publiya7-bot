@@ -215,16 +215,49 @@ class CarritoBot:
         except Exception as e:
             print(f"⚠️ Error en notificación: {e}")
         
+        # Construir mensaje de confirmación con métodos de pago
         lineas = [
             "🎉 ¡PEDIDO CONFIRMADO!",
             "",
             f"📦 Número de orden: *{numero_orden}*",
             f"💰 Total: ${carrito['total']:,} COP",
             "",
-            "Gracias por tu compra. Te contactaremos pronto para confirmar los detalles.",
+            "Gracias por tu compra. Aquí tienes los métodos de pago disponibles:",
+            ""
+        ]
+        
+        # Agregar métodos de pago configurados
+        metodos_pago = []
+        
+        # Nequi/Daviplata
+        nequi_numero = self.config.get('nequi_numero', self.config.get('whatsapp', ''))
+        if nequi_numero:
+            metodos_pago.append(f"📱 *Nequi/Daviplata:* {nequi_numero}")
+        
+        # Transferencia bancaria
+        banco_nombre = self.config.get('banco_nombre', '')
+        banco_tipo = self.config.get('banco_tipo_cuenta', '')
+        banco_cuenta = self.config.get('banco_numero_cuenta', '')
+        if banco_nombre and banco_cuenta:
+            tipo_cuenta = "Ahorros" if banco_tipo == "ahorros" else "Corriente"
+            metodos_pago.append(f"🏦 *{banco_nombre}* - Cuenta {tipo_cuenta}")
+            metodos_pago.append(f"   Número: {banco_cuenta}")
+        
+        # Efectivo
+        acepta_efectivo = self.config.get('acepta_efectivo', 'si')
+        if acepta_efectivo == 'si':
+            metodos_pago.append("💵 *Efectivo:* Contra entrega")
+        
+        if metodos_pago:
+            lineas.append("💳 *MÉTODOS DE PAGO:*")
+            lineas.extend(metodos_pago)
+            lineas.append("")
+        
+        lineas.extend([
+            "📸 *Por favor envía el comprobante de pago* respondiendo a este mensaje con la imagen.",
             "",
             "¿Deseas hacer otro pedido? Escribe 'menu'."
-        ]
+        ])
         
         return "\n".join(lineas)
     
