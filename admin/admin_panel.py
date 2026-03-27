@@ -42,6 +42,44 @@ async def login(username: str = Form(""), password: str = Form("")):
         return HTMLResponse(content="<h1>Credenciales incorrectas</h1><a href='/admin'>Volver</a>")
     return HTMLResponse(content="<h1>Error</h1><a href='/admin'>Volver</a>")
 
+def obtener_estadisticas():
+    """Obtiene estadísticas de la base de datos"""
+    stats = {
+        'total_pedidos': 0,
+        'total_ventas': 0,
+        'pedidos_hoy': 0,
+        'ventas_hoy': 0
+    }
+    
+    try:
+        from database.database_saas import db_saas
+        conn = db_saas._get_connection()
+        cursor = conn.cursor()
+        
+        # Total pedidos y ventas
+        cursor.execute("SELECT COUNT(*) as total, COALESCE(SUM(total), 0) as ventas FROM pedidos")
+        row = cursor.fetchone()
+        stats['total_pedidos'] = row['total'] or 0
+        stats['total_ventas'] = row['ventas'] or 0
+        
+        # Pedidos y ventas de hoy
+        from datetime import datetime
+        hoy = datetime.now().strftime('%Y-%m-%d')
+        cursor.execute("""
+            SELECT COUNT(*) as total, COALESCE(SUM(total), 0) as ventas 
+            FROM pedidos 
+            WHERE date(creado_en) = date('now')
+        """)
+        row = cursor.fetchone()
+        stats['pedidos_hoy'] = row['total'] or 0
+        stats['ventas_hoy'] = row['ventas'] or 0
+        
+        conn.close()
+    except Exception as e:
+        print(f"⚠️ Error obteniendo estadísticas: {e}")
+    
+    return stats
+
 @router.get("/dashboard")
 async def dashboard():
     # Cargar clientes
@@ -61,6 +99,9 @@ async def dashboard():
             except:
                 pass
     
+    # Obtener estadísticas
+    stats = obtener_estadisticas()
+    
     # Generar filas de la tabla
     filas = ""
     for c in clientes:
@@ -69,23 +110,60 @@ async def dashboard():
     html = f"""
     <!DOCTYPE html>
     <html>
-    <head><title>Dashboard - BotlyPro</title></head>
-    <body style="font-family: Arial; margin: 0;">
+    <head>
+        <title>Dashboard - BotlyPro</title>
+        <style>
+            .stats-container {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }}
+            .stat-card {{ background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }}
+            .stat-number {{ font-size: 32px; font-weight: bold; color: #667eea; margin: 10px 0; }}
+            .stat-label {{ color: #718096; font-size: 14px; }}
+            .stat-hoy {{ background: #48bb78; color: white; }}
+            .stat-hoy .stat-number {{ color: white; }}
+            .stat-hoy .stat-label {{ color: #e6fffa; }}
+        </style>
+    </head>
+    <body style="font-family: Arial; margin: 0; background: #f7fafc;">
         <div style="background: #2d3748; color: white; padding: 20px;">
             <h2>🤖 BotlyPro</h2>
         </div>
-        <div style="padding: 30px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="padding: 30px; max-width: 1200px; margin: 0 auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h1>Dashboard</h1>
                 <a href="/admin/nuevo-cliente" style="background: #48bb78; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">➕ Nuevo Cliente</a>
             </div>
-            <p>Total Clientes: {len(clientes)}</p>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+            
+            <!-- Estadísticas -->
+            <div class="stats-container">
+                <div class="stat-card stat-hoy">
+                    <div class="stat-label">📦 Pedidos Hoy</div>
+                    <div class="stat-number">{stats['pedidos_hoy']}</div>
+                </div>
+                <div class="stat-card stat-hoy">
+                    <div class="stat-label">💰 Ventas Hoy</div>
+                    <div class="stat-number">${stats['ventas_hoy']:,}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">📦 Total Pedidos</div>
+                    <div class="stat-number">{stats['total_pedidos']}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">💰 Total Ventas</div>
+                    <div class="stat-number">${stats['total_ventas']:,}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">👥 Clientes</div>
+                    <div class="stat-number">{len(clientes)}</div>
+                </div>
+            </div>
+            
+            <!-- Tabla de clientes -->
+            <h2 style="margin-top: 40px; color: #2d3748;">Clientes</h2>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 20px; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-radius: 10px; overflow: hidden;">
                 <tr style="background: #667eea; color: white;">
-                    <th style="padding: 10px; text-align: left;">ID</th>
-                    <th style="padding: 10px; text-align: left;">Nombre</th>
-                    <th style="padding: 10px; text-align: left;">Teléfono</th>
-                    <th style="padding: 10px; text-align: left;">Acción</th>
+                    <th style="padding: 15px; text-align: left;">ID</th>
+                    <th style="padding: 15px; text-align: left;">Nombre</th>
+                    <th style="padding: 15px; text-align: left;">Teléfono</th>
+                    <th style="padding: 15px; text-align: left;">Acción</th>
                 </tr>
                 {filas}
             </table>
