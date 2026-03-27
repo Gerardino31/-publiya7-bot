@@ -173,6 +173,11 @@ class CarritoBot:
         """Convierte el carrito en pedido y envía notificaciones"""
         from app.notificaciones import notificador
         
+        # DEBUG: Verificar configuración
+        print(f"[DEBUG] CarritoBot.finalizar_pedido - cliente_id: {cliente_id}")
+        print(f"[DEBUG] Config email_notificaciones: '{self.config.get('email_notificaciones')}'")
+        print(f"[DEBUG] Config email: '{self.config.get('email')}'")
+        
         carrito = db_saas.obtener_carrito_activo(cliente_id, user_id)
         
         if not carrito or carrito['cantidad_items'] == 0:
