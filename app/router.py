@@ -481,8 +481,12 @@ class MessageRouter:
                 estado['paso'] = 3
                 
                 # Agregar al carrito si está disponible
+                print(f"[DEBUG] Carrito check: carrito={self.carrito is not None}, user_id={user_id}, cliente_id={self.cliente_id}")
                 if self.carrito and user_id and self.cliente_id:
+                    print(f"[DEBUG] Agregando al carrito...")
                     return self._agregar_al_carrito(estado, user_id, area=ancho*alto)
+                else:
+                    print(f"[DEBUG] Carrito no disponible, usando cotizacion normal")
                 
                 return self._generar_cotizacion(estado, area=ancho*alto), {'tipo': 'cotizacion'}
             else:
@@ -496,8 +500,12 @@ class MessageRouter:
                 estado['paso'] = 3
                 
                 # Agregar al carrito si está disponible
+                print(f"[DEBUG] Carrito check: carrito={self.carrito is not None}, user_id={user_id}, cliente_id={self.cliente_id}")
                 if self.carrito and user_id and self.cliente_id:
+                    print(f"[DEBUG] Agregando al carrito...")
                     return self._agregar_al_carrito(estado, user_id)
+                else:
+                    print(f"[DEBUG] Carrito no disponible, usando cotizacion normal")
                 
                 return self._generar_cotizacion(estado), {'tipo': 'cotizacion'}
             else:

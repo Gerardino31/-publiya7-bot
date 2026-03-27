@@ -209,6 +209,8 @@ class CarritoBot:
         # Configuración del cliente para notificaciones
         cliente_config = {
             'nombre': self.config.get('nombre', 'Negocio'),
+            'email': self.config.get('email'),
+            'email_notificaciones': self.config.get('email_notificaciones'),
             'whatsapp': self.config.get('whatsapp'),
             'telefono_notificaciones': self.config.get('telefono_notificaciones'),
             'notificar_whatsapp': True
