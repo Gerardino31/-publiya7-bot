@@ -1445,17 +1445,17 @@ async def cliente_dashboard(cliente_id: str):
             </div>
             
             <script>
-                function togglePassword(inputId, eyeId) {
+                function togglePassword(inputId, eyeId) {{
                     const input = document.getElementById(inputId);
                     const eye = document.getElementById(eyeId);
-                    if (input.type === "password") {
+                    if (input.type === "password") {{
                         input.type = "text";
                         eye.textContent = "🙈";
-                    } else {
+                    }} else {{
                         input.type = "password";
                         eye.textContent = "👁️";
-                    }
-                }
+                    }}
+                }}
             </script>
         </div>
     </body>
