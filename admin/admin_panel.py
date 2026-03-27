@@ -1418,22 +1418,45 @@ async def cliente_dashboard(cliente_id: str):
             <!-- Cambiar contraseña -->
             <div class="section">
                 <h3>🔐 Cambiar Contraseña</h3>
-                <form method="POST" action="/admin/cliente-dashboard/{cliente_id}/cambiar-password">
+                <form method="POST" action="/admin/cliente-dashboard/{cliente_id}/cambiar-password" id="passwordForm">
                     <div style="margin-bottom: 15px;">
                         <label style="display: block; margin-bottom: 5px; color: #4a5568;">Contraseña actual:</label>
-                        <input type="password" name="password_actual" required style="padding: 10px; width: 300px; border: 1px solid #e2e8f0; border-radius: 5px;">
+                        <div style="position: relative; width: 300px;">
+                            <input type="password" name="password_actual" id="pass_actual" required style="padding: 10px; width: 100%; border: 1px solid #e2e8f0; border-radius: 5px; box-sizing: border-box;">
+                            <span onclick="togglePassword('pass_actual', 'eye1')" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px;" id="eye1">👁️</span>
+                        </div>
                     </div>
                     <div style="margin-bottom: 15px;">
                         <label style="display: block; margin-bottom: 5px; color: #4a5568;">Nueva contraseña:</label>
-                        <input type="password" name="password_nueva" required style="padding: 10px; width: 300px; border: 1px solid #e2e8f0; border-radius: 5px;">
+                        <div style="position: relative; width: 300px;">
+                            <input type="password" name="password_nueva" id="pass_nueva" required style="padding: 10px; width: 100%; border: 1px solid #e2e8f0; border-radius: 5px; box-sizing: border-box;">
+                            <span onclick="togglePassword('pass_nueva', 'eye2')" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px;" id="eye2">👁️</span>
+                        </div>
                     </div>
                     <div style="margin-bottom: 15px;">
                         <label style="display: block; margin-bottom: 5px; color: #4a5568;">Confirmar nueva contraseña:</label>
-                        <input type="password" name="password_confirmar" required style="padding: 10px; width: 300px; border: 1px solid #e2e8f0; border-radius: 5px;">
+                        <div style="position: relative; width: 300px;">
+                            <input type="password" name="password_confirmar" id="pass_confirmar" required style="padding: 10px; width: 100%; border: 1px solid #e2e8f0; border-radius: 5px; box-sizing: border-box;">
+                            <span onclick="togglePassword('pass_confirmar', 'eye3')" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px;" id="eye3">👁️</span>
+                        </div>
                     </div>
                     <button type="submit" style="background: #48bb78; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Cambiar Contraseña</button>
                 </form>
             </div>
+            
+            <script>
+                function togglePassword(inputId, eyeId) {
+                    const input = document.getElementById(inputId);
+                    const eye = document.getElementById(eyeId);
+                    if (input.type === "password") {
+                        input.type = "text";
+                        eye.textContent = "🙈";
+                    } else {
+                        input.type = "password";
+                        eye.textContent = "👁️";
+                    }
+                }
+            </script>
         </div>
     </body>
     </html>
