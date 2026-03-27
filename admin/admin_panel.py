@@ -413,7 +413,9 @@ async def guardar_cliente(
     config['faq']['no_entendi'] = faq_error
     
     # Guardar configuración de notificaciones
+    print(f"[DEBUG] Guardando email_notificaciones: '{email_notificaciones}'")
     config['email_notificaciones'] = email_notificaciones if email_notificaciones else email
+    print(f"[DEBUG] Email guardado en config: '{config.get('email_notificaciones')}'")
     
     # Guardar métodos de pago
     config['nequi_numero'] = nequi_numero if nequi_numero else telefono
