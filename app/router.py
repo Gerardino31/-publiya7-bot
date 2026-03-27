@@ -194,8 +194,14 @@ class MessageRouter:
             # Cargar estado desde BD si existe
             estado = self._cargar_estado(cliente_id, user_id)
             
+            # DEBUG: Log estado actual
+            print(f"[DEBUG] Usuario: {user_id}, Paso: {estado.get('paso')}, Categoria: {estado.get('categoria')}, Mensaje: {mensaje[:30]}")
+            
             # Detectar intencion y procesar
             respuesta, metadata = self._procesar_intencion(msg, estado, cliente_id, user_id)
+            
+            # DEBUG: Log estado después de procesar
+            print(f"[DEBUG] Después - Paso: {estado.get('paso')}, Categoria: {estado.get('categoria')}")
             
             # Guardar estado actualizado
             self._guardar_estado(cliente_id, user_id, estado)
