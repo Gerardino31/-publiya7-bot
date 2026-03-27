@@ -204,7 +204,13 @@ class MessageRouter:
             print(f"[DEBUG] Después - Paso: {estado.get('paso')}, Categoria: {estado.get('categoria')}")
             
             # Guardar estado actualizado
-            self._guardar_estado(cliente_id, user_id, estado)
+            guardado_ok = self._guardar_estado(cliente_id, user_id, estado)
+            
+            # Verificar que el estado se guardó correctamente
+            if not guardado_ok:
+                print(f"[ERROR] CRÍTICO: No se pudo guardar el estado para {cliente_id}/{user_id}")
+                # Agregar mensaje de error a la respuesta
+                respuesta += "\n\n⚠️ *Nota: Hubo un problema técnico. Si el problema persiste, escribe 'menu' para reiniciar.*"
             
             # Loguear conversacion
             self._loguear_conversacion(cliente_id, user_id, mensaje, respuesta, metadata.get('tipo', 'general'))
@@ -377,17 +383,23 @@ class MessageRouter:
         # Estado por defecto
         return {'paso': 0, 'categoria': None, 'producto': None, 'cantidad': None, 'total': 0}
     
-    def _guardar_estado(self, cliente_id: str, user_id: str, estado: Dict):
-        """Guarda estado en BD."""
+    def _guardar_estado(self, cliente_id: str, user_id: str, estado: Dict) -> bool:
+        """Guarda estado en BD. Retorna True si se guardó correctamente."""
         if db:
             try:
                 resultado = db.guardar_estado(cliente_id, user_id, estado)
                 if not resultado:
                     print(f"[ERROR] No se pudo guardar el estado para {cliente_id}/{user_id}")
+                    return False
                 else:
                     print(f"[DEBUG] Estado guardado OK: {cliente_id}/{user_id} - paso {estado.get('paso')} - cat {estado.get('categoria')}")
+                    return True
             except Exception as e:
                 print(f"[ERROR] Excepción guardando estado: {e}")
+                return False
+        else:
+            print(f"[ERROR] db es None, no se puede guardar estado")
+            return False
     
     def _limpiar_estado(self, cliente_id: str, user_id: str):
         """Limpia estado de la BD."""
