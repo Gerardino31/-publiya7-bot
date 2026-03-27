@@ -14,5 +14,8 @@ twilio>=8.10.0
 # SendGrid para emails
 sendgrid>=6.10.0
 
+# Variables de entorno
+python-dotenv>=1.0.0
+
 # Utilidades
 pytz>=2023.3
