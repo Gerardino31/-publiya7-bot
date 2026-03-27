@@ -267,6 +267,56 @@ async def ver_cliente(cliente_id: str):
                     </div>
                 </div>
                 <hr style="margin: 20px 0;">
+                <h3 style="color: #ed8936;">📧 Configuración de Notificaciones</h3>
+                <div style="background: #fffaf0; border: 2px solid #ed8936; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <p style="margin: 0 0 15px 0; color: #744210;">Configura el email donde recibirás notificaciones de nuevos pedidos:</p>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: bold; color: #744210;">Email de Notificaciones:</label>
+                        <input type="email" name="email_notificaciones" value="{config.get('email_notificaciones', email)}" style="padding: 8px; width: 300px; border: 1px solid #ed8936; border-radius: 4px;">
+                        <small style="color: #744210; display: block; margin-top: 5px;">📩 Aquí llegarán los emails cuando haya pedidos nuevos</small>
+                    </div>
+                </div>
+                
+                <hr style="margin: 20px 0;">
+                <h3 style="color: #38b2ac;">💳 Métodos de Pago</h3>
+                <div style="background: #e6fffa; border: 2px solid #38b2ac; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <p style="margin: 0 0 15px 0; color: #234e52;">Configura cómo quieres que te paguen tus clientes:</p>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: bold; color: #234e52;">📱 Nequi / Daviplata:</label>
+                        <input type="text" name="nequi_numero" value="{config.get('nequi_numero', telefono)}" style="padding: 8px; width: 300px; border: 1px solid #38b2ac; border-radius: 4px;">
+                        <small style="color: #234e52; display: block; margin-top: 5px;">Número de celular para recibir pagos</small>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: bold; color: #234e52;">🏦 Banco:</label>
+                        <input type="text" name="banco_nombre" value="{config.get('banco_nombre', '')}" style="padding: 8px; width: 300px; border: 1px solid #38b2ac; border-radius: 4px;" placeholder="Ej: Bancolombia, Davivienda">
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: bold; color: #234e52;">💳 Tipo de Cuenta:</label>
+                        <select name="banco_tipo_cuenta" style="padding: 8px; width: 300px; border: 1px solid #38b2ac; border-radius: 4px;">
+                            <option value="" {'selected' if not config.get('banco_tipo_cuenta') else ''}>Seleccionar...</option>
+                            <option value="ahorros" {'selected' if config.get('banco_tipo_cuenta') == 'ahorros' else ''}>Cuenta de Ahorros</option>
+                            <option value="corriente" {'selected' if config.get('banco_tipo_cuenta') == 'corriente' else ''}>Cuenta Corriente</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: bold; color: #234e52;">🔢 Número de Cuenta:</label>
+                        <input type="text" name="banco_numero_cuenta" value="{config.get('banco_numero_cuenta', '')}" style="padding: 8px; width: 300px; border: 1px solid #38b2ac; border-radius: 4px;">
+                    </div>
+                    
+                    <div>
+                        <label style="display: block; font-weight: bold; color: #234e52;">💵 ¿Aceptas efectivo?</label>
+                        <select name="acepta_efectivo" style="padding: 8px; width: 300px; border: 1px solid #38b2ac; border-radius: 4px;">
+                            <option value="si" {'selected' if config.get('acepta_efectivo') == 'si' else ''}>Sí - Contra entrega</option>
+                            <option value="no" {'selected' if config.get('acepta_efectivo') == 'no' else ''}>No - Solo transferencias</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <hr style="margin: 20px 0;">
                 <h3 style="color: #667eea;">💬 Frases de Cortesía</h3>
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; font-weight: bold;">Frase General:</label>
@@ -302,7 +352,26 @@ async def ver_cliente(cliente_id: str):
     return HTMLResponse(content=html)
 
 @router.post("/cliente/{cliente_id}/guardar")
-async def guardar_cliente(cliente_id: str, nombre: str = Form(...), telefono: str = Form(""), email: str = Form(""), eslogan: str = Form(""), pregunta: str = Form(""), despedida: str = Form(""), frase_general: str = Form(""), frase_despedida: str = Form(""), faq_horario: str = Form(""), faq_ubicacion: str = Form(""), faq_error: str = Form("")):
+async def guardar_cliente(
+    cliente_id: str, 
+    nombre: str = Form(...), 
+    telefono: str = Form(""), 
+    email: str = Form(""), 
+    eslogan: str = Form(""), 
+    pregunta: str = Form(""), 
+    despedida: str = Form(""), 
+    frase_general: str = Form(""), 
+    frase_despedida: str = Form(""), 
+    faq_horario: str = Form(""), 
+    faq_ubicacion: str = Form(""), 
+    faq_error: str = Form(""),
+    email_notificaciones: str = Form(""),
+    nequi_numero: str = Form(""),
+    banco_nombre: str = Form(""),
+    banco_tipo_cuenta: str = Form(""),
+    banco_numero_cuenta: str = Form(""),
+    acepta_efectivo: str = Form("si")
+):
     config_path = Path(f"clientes/configs/{cliente_id}.json")
     
     if not config_path.exists():
@@ -334,6 +403,16 @@ async def guardar_cliente(cliente_id: str, nombre: str = Form(...), telefono: st
     config['faq']['horario'] = faq_horario
     config['faq']['ubicacion'] = faq_ubicacion
     config['faq']['no_entendi'] = faq_error
+    
+    # Guardar configuración de notificaciones
+    config['email_notificaciones'] = email_notificaciones if email_notificaciones else email
+    
+    # Guardar métodos de pago
+    config['nequi_numero'] = nequi_numero if nequi_numero else telefono
+    config['banco_nombre'] = banco_nombre
+    config['banco_tipo_cuenta'] = banco_tipo_cuenta
+    config['banco_numero_cuenta'] = banco_numero_cuenta
+    config['acepta_efectivo'] = acepta_efectivo
     
     # Guardar archivo
     try:
