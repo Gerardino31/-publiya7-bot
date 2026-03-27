@@ -1031,4 +1031,195 @@ async def ver_pedidos():
     """
     return HTMLResponse(content=html)
 
+@router.get("/pedido/{pedido_id}")
+async def ver_pedido_detalle(pedido_id: int):
+    """Muestra el detalle completo de un pedido"""
+    
+    try:
+        from database.database_saas import db_saas
+        conn = db_saas._get_connection()
+        cursor = conn.cursor()
+        
+        # Obtener información del pedido
+        cursor.execute("""
+            SELECT p.*, c.nombre as cliente_nombre, c.telefono as cliente_telefono, c.email as cliente_email
+            FROM pedidos p
+            LEFT JOIN clientes c ON p.cliente_id = c.cliente_id
+            WHERE p.id = ?
+        """, (pedido_id,))
+        
+        pedido = cursor.fetchone()
+        if not pedido:
+            conn.close()
+            return HTMLResponse(content="<h1>Pedido no encontrado</h1><a href='/admin/pedidos'>Volver</a>")
+        
+        # Obtener items del pedido
+        cursor.execute("""
+            SELECT * FROM pedido_items WHERE pedido_id = ?
+        """, (pedido_id,))
+        
+        items = cursor.fetchall()
+        conn.close()
+        
+        # Generar filas de productos
+        filas_items = ""
+        for item in items:
+            if item['medidas']:
+                cantidad = item['medidas']
+            else:
+                cantidad = f"{item['cantidad']:,} unid"
+            
+            filas_items += f"""
+            <tr>
+                <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">{item['nombre_producto']}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: center;">{cantidad}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">${item['precio_unitario']:,}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${item['subtotal']:,}</td>
+            </tr>
+            """
+        
+        # Color según estado
+        estado_color = {
+            'confirmado': '#48bb78',
+            'pendiente': '#ecc94b',
+            'procesando': '#4299e1',
+            'completado': '#38a169',
+            'cancelado': '#f56565'
+        }.get(pedido['estado'], '#718096')
+        
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Pedido #{pedido['numero_orden']} - BotlyPro</title>
+            <style>
+                body {{ font-family: Arial; margin: 0; background: #f7fafc; }}
+                .header {{ background: #2d3748; color: white; padding: 20px; }}
+                .container {{ padding: 30px; max-width: 1000px; margin: 0 auto; }}
+                .card {{ background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }}
+                .btn {{ padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block; margin-right: 10px; }}
+                .btn-primary {{ background: #667eea; color: white; }}
+                .btn-success {{ background: #48bb78; color: white; }}
+                .btn-warning {{ background: #ed8936; color: white; }}
+                .btn-danger {{ background: #f56565; color: white; }}
+                table {{ width: 100%; border-collapse: collapse; margin-top: 15px; }}
+                th {{ background: #667eea; color: white; padding: 12px; text-align: left; }}
+                .estado-badge {{ background: {estado_color}; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; text-transform: uppercase; font-weight: bold; }}
+                .info-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }}
+                .info-item {{ margin-bottom: 15px; }}
+                .info-label {{ color: #718096; font-size: 12px; text-transform: uppercase; }}
+                .info-value {{ font-size: 16px; font-weight: bold; color: #2d3748; }}
+                .total {{ font-size: 24px; color: #48bb78; text-align: right; margin-top: 20px; padding-top: 20px; border-top: 2px solid #e2e8f0; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>🤖 BotlyPro</h2>
+            </div>
+            <div class="container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h1>📦 Pedido #{pedido['numero_orden']}</h1>
+                    <div>
+                        <a href="/admin/pedidos" class="btn btn-primary">← Volver a Pedidos</a>
+                    </div>
+                </div>
+                
+                <!-- Estado y Acciones -->
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span class="estado-badge">{pedido['estado']}</span>
+                            <span style="margin-left: 15px; color: #718096;">{pedido['creado_en'][:19]}</span>
+                        </div>
+                        <div>
+                            <form method="POST" action="/admin/pedido/{pedido_id}/estado" style="display: inline;">
+                                <select name="nuevo_estado" style="padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-right: 10px;">
+                                    <option value="pendiente" {'selected' if pedido['estado'] == 'pendiente' else ''}>Pendiente</option>
+                                    <option value="confirmado" {'selected' if pedido['estado'] == 'confirmado' else ''}>Confirmado</option>
+                                    <option value="procesando" {'selected' if pedido['estado'] == 'procesando' else ''}>Procesando</option>
+                                    <option value="completado" {'selected' if pedido['estado'] == 'completado' else ''}>Completado</option>
+                                    <option value="cancelado" {'selected' if pedido['estado'] == 'cancelado' else ''}>Cancelado</option>
+                                </select>
+                                <button type="submit" class="btn btn-warning">Actualizar Estado</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Información del Cliente -->
+                <div class="card">
+                    <h3 style="margin-top: 0; color: #667eea;">👤 Información del Cliente</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Teléfono</div>
+                            <div class="info-value">{pedido['usuario_id']}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Nombre</div>
+                            <div class="info-value">{pedido.get('nombre_comprador') or 'No especificado'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Email</div>
+                            <div class="info-value">{pedido.get('email_contacto') or 'No especificado'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Dirección</div>
+                            <div class="info-value">{pedido.get('direccion_entrega') or 'No especificada'}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Productos -->
+                <div class="card">
+                    <h3 style="margin-top: 0; color: #667eea;">📋 Productos</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th style="text-align: center;">Cantidad</th>
+                                <th style="text-align: right;">Precio Unit.</th>
+                                <th style="text-align: right;">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filas_items}
+                        </tbody>
+                    </table>
+                    <div class="total">
+                        TOTAL: ${pedido['total']:,} COP
+                    </div>
+                </div>
+                
+                <!-- Notas -->
+                {f'<div class="card"><h3 style="margin-top: 0; color: #667eea;">📝 Notas</h3><p>{pedido.get("notas", "Sin notas")}</p></div>' if pedido.get('notas') else ''}
+            </div>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html)
+        
+    except Exception as e:
+        print(f"❌ Error mostrando pedido: {e}")
+        return HTMLResponse(content=f"<h1>Error cargando pedido</h1><p>{str(e)}</p><a href='/admin/pedidos'>Volver</a>")
+
+@router.post("/pedido/{pedido_id}/estado")
+async def actualizar_estado_pedido(pedido_id: int, nuevo_estado: str = Form(...)):
+    """Actualiza el estado de un pedido"""
+    try:
+        from database.database_saas import db_saas
+        conn = db_saas._get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE pedidos SET estado = ? WHERE id = ?
+        """, (nuevo_estado, pedido_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return RedirectResponse(url=f"/admin/pedido/{pedido_id}", status_code=302)
+    except Exception as e:
+        print(f"❌ Error actualizando estado: {e}")
+        return HTMLResponse(content=f"<h1>Error actualizando estado</h1><p>{str(e)}</p><a href='/admin/pedido/{pedido_id}'>Volver</a>")
+
 print("✅ Panel simple cargado")
