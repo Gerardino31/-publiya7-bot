@@ -129,7 +129,10 @@ async def dashboard():
         <div style="padding: 30px; max-width: 1200px; margin: 0 auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h1>Dashboard</h1>
-                <a href="/admin/nuevo-cliente" style="background: #48bb78; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">➕ Nuevo Cliente</a>
+                <div>
+                    <a href="/admin/pedidos" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;">📦 Ver Pedidos</a>
+                    <a href="/admin/nuevo-cliente" style="background: #48bb78; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">➕ Nuevo Cliente</a>
+                </div>
             </div>
             
             <!-- Estadísticas -->
@@ -831,5 +834,122 @@ def cargar_plantilla(tipo: str) -> dict:
     }
     
     return plantillas.get(tipo, plantillas["vacia"])
+
+# ============================================
+# GESTIÓN DE PEDIDOS
+# ============================================
+
+@router.get("/pedidos")
+async def ver_pedidos():
+    """Muestra lista de todos los pedidos"""
+    
+    # Obtener pedidos de la base de datos
+    pedidos = []
+    try:
+        from database.database_saas import db_saas
+        conn = db_saas._get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT p.*, c.nombre as cliente_nombre 
+            FROM pedidos p
+            LEFT JOIN clientes c ON p.cliente_id = c.cliente_id
+            ORDER BY p.creado_en DESC
+        """)
+        
+        for row in cursor.fetchall():
+            pedidos.append({
+                'id': row['id'],
+                'numero_orden': row['numero_orden'],
+                'cliente_id': row['cliente_id'],
+                'cliente_nombre': row['cliente_nombre'] or row['cliente_id'],
+                'total': row['total'],
+                'estado': row['estado'],
+                'creado_en': row['creado_en']
+            })
+        
+        conn.close()
+    except Exception as e:
+        print(f"⚠️ Error cargando pedidos: {e}")
+    
+    # Generar filas de la tabla
+    filas = ""
+    for p in pedidos:
+        estado_color = {
+            'confirmado': '#48bb78',
+            'pendiente': '#ecc94b',
+            'procesando': '#4299e1',
+            'completado': '#38a169',
+            'cancelado': '#f56565'
+        }.get(p['estado'], '#718096')
+        
+        filas += f"""
+        <tr>
+            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">{p['numero_orden']}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">{p['cliente_nombre']}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${p['total']:,} COP</td>
+            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">
+                <span style="background: {estado_color}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; text-transform: uppercase;">
+                    {p['estado']}
+                </span>
+            </td>
+            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">{p['creado_en'][:10]}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">
+                <a href="/admin/pedido/{p['id']}" style="background: #667eea; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-size: 12px;">Ver</a>
+            </td>
+        </tr>
+        """
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Pedidos - BotlyPro</title>
+        <style>
+            body {{ font-family: Arial; margin: 0; background: #f7fafc; }}
+            .header {{ background: #2d3748; color: white; padding: 20px; }}
+            .container {{ padding: 30px; max-width: 1200px; margin: 0 auto; }}
+            .btn {{ padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block; }}
+            .btn-primary {{ background: #667eea; color: white; }}
+            .btn-success {{ background: #48bb78; color: white; }}
+            table {{ width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-radius: 10px; overflow: hidden; margin-top: 20px; }}
+            th {{ background: #667eea; color: white; padding: 15px; text-align: left; font-weight: 600; }}
+            tr:hover {{ background: #f7fafc; }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h2>🤖 BotlyPro</h2>
+        </div>
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1>📦 Pedidos</h1>
+                <a href="/admin/dashboard" class="btn btn-primary">← Volver al Dashboard</a>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px;">
+                <p style="margin: 0; color: #718096;">Total de pedidos: <strong style="color: #2d3748; font-size: 24px;">{len(pedidos)}</strong></p>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Número</th>
+                        <th>Cliente</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {filas if filas else '<tr><td colspan="6" style="padding: 40px; text-align: center; color: #718096;">No hay pedidos registrados</td></tr>'}
+                </tbody>
+            </table>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
 
 print("✅ Panel simple cargado")
