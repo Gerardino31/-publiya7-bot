@@ -1316,16 +1316,19 @@ async def cliente_login_page():
 @router.post("/cliente-login")
 async def cliente_login(cliente_id: str = Form(""), password: str = Form("")):
     """Autentica a un cliente"""
-    # Por ahora, la contraseña es el cliente_id + "2024"
-    # En producción, debería ser más seguro
-    password_esperada = f"{cliente_id}2024"
-    
     # Verificar que el cliente existe
     config_path = Path(f"clientes/configs/{cliente_id}.json")
     if not config_path.exists():
         return HTMLResponse(content="<h1>❌ Cliente no encontrado</h1><a href='/admin/cliente-login'>Volver</a>")
     
-    if password != password_esperada:
+    # Cargar configuración del cliente
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+    
+    # Verificar contraseña (personalizada o por defecto)
+    password_guardada = config.get('password', f"{cliente_id}2024")
+    
+    if password != password_guardada:
         return HTMLResponse(content="<h1>❌ Contraseña incorrecta</h1><a href='/admin/cliente-login'>Volver</a>")
     
     # Login exitoso - redirigir al dashboard del cliente
@@ -1410,6 +1413,26 @@ async def cliente_dashboard(cliente_id: str):
             <div class="section">
                 <h3>🛍️ Productos Más Vendidos</h3>
                 {generar_tabla_productos(stats['top_productos'])}
+            </div>
+            
+            <!-- Cambiar contraseña -->
+            <div class="section">
+                <h3>🔐 Cambiar Contraseña</h3>
+                <form method="POST" action="/admin/cliente-dashboard/{cliente_id}/cambiar-password">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; color: #4a5568;">Contraseña actual:</label>
+                        <input type="password" name="password_actual" required style="padding: 10px; width: 300px; border: 1px solid #e2e8f0; border-radius: 5px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; color: #4a5568;">Nueva contraseña:</label>
+                        <input type="password" name="password_nueva" required style="padding: 10px; width: 300px; border: 1px solid #e2e8f0; border-radius: 5px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; color: #4a5568;">Confirmar nueva contraseña:</label>
+                        <input type="password" name="password_confirmar" required style="padding: 10px; width: 300px; border: 1px solid #e2e8f0; border-radius: 5px;">
+                    </div>
+                    <button type="submit" style="background: #48bb78; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Cambiar Contraseña</button>
+                </form>
             </div>
         </div>
     </body>
@@ -1534,5 +1557,57 @@ def generar_tabla_productos(productos: list) -> str:
         <tbody>{filas}</tbody>
     </table>
     """
+
+@router.post("/cliente-dashboard/{cliente_id}/cambiar-password")
+async def cambiar_password_cliente(
+    cliente_id: str,
+    password_actual: str = Form(""),
+    password_nueva: str = Form(""),
+    password_confirmar: str = Form("")
+):
+    """Cambia la contraseña de un cliente"""
+    try:
+        # Verificar que el cliente existe
+        config_path = Path(f"clientes/configs/{cliente_id}.json")
+        if not config_path.exists():
+            return HTMLResponse(content="<h1>❌ Cliente no encontrado</h1><a href='/admin/cliente-login'>Volver</a>")
+        
+        # Cargar configuración
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        
+        # Verificar contraseña actual
+        password_guardada = config.get('password', f"{cliente_id}2024")
+        if password_actual != password_guardada:
+            return HTMLResponse(content="<h1>❌ Contraseña actual incorrecta</h1><a href='/admin/cliente-dashboard/{cliente_id}'>Volver</a>")
+        
+        # Verificar que las nuevas contraseñas coinciden
+        if password_nueva != password_confirmar:
+            return HTMLResponse(content="<h1>❌ Las contraseñas nuevas no coinciden</h1><a href='/admin/cliente-dashboard/{cliente_id}'>Volver</a>")
+        
+        # Guardar nueva contraseña
+        config['password'] = password_nueva
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        
+        return HTMLResponse(content=f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Contraseña Cambiada - BotlyPro</title></head>
+        <body style="font-family: Arial; margin: 0; background: #f7fafc;">
+            <div style="background: #2d3748; color: white; padding: 20px;">
+                <h2>🤖 BotlyPro</h2>
+            </div>
+            <div style="max-width: 600px; margin: 50px auto; background: white; padding: 40px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h1 style="color: #48bb78;">✅ Contraseña Actualizada</h1>
+                <p>Tu contraseña ha sido cambiada exitosamente.</p>
+                <br>
+                <a href="/admin/cliente-dashboard/{cliente_id}" style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px;">Volver al Dashboard</a>
+            </div>
+        </body>
+        </html>
+        """)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>❌ Error al cambiar contraseña</h1><p>{str(e)}</p><a href='/admin/cliente-dashboard/{cliente_id}'>Volver</a>")
 
 print("✅ Panel simple cargado")
