@@ -964,27 +964,27 @@ async def ver_pedidos():
     # Generar filas de la tabla
     filas = ""
     for p in pedidos:
-        estado_color = {
-            'confirmado': '#48bb78',
-            'pendiente': '#ecc94b',
-            'procesando': '#4299e1',
-            'completado': '#38a169',
-            'cancelado': '#f56565'
-        }.get(p['estado'], '#718096')
+        estado_info = {
+            'confirmado': {'color': '#48bb78', 'icono': '✅', 'bg': '#f0fff4'},
+            'pendiente': {'color': '#ecc94b', 'icono': '⏳', 'bg': '#fffff0'},
+            'procesando': {'color': '#4299e1', 'icono': '⚙️', 'bg': '#ebf8ff'},
+            'completado': {'color': '#38a169', 'icono': '📦', 'bg': '#f0fff4'},
+            'cancelado': {'color': '#f56565', 'icono': '❌', 'bg': '#fff5f5'}
+        }.get(p['estado'], {'color': '#718096', 'icono': '❓', 'bg': '#f7fafc'})
         
         filas += f"""
-        <tr>
-            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">{p['numero_orden']}</td>
+        <tr style="background: {estado_info['bg']};">
+            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">{p['numero_orden']}</td>
             <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">{p['cliente_nombre']}</td>
-            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${p['total']:,} COP</td>
+            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #2d3748;">${p['total']:,} COP</td>
             <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">
-                <span style="background: {estado_color}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; text-transform: uppercase;">
-                    {p['estado']}
+                <span style="background: {estado_info['color']}; color: white; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 5px;">
+                    {estado_info['icono']} {p['estado'].upper()}
                 </span>
             </td>
-            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">{p['creado_en'][:10]}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; color: #718096;">📅 {p['creado_en'][:10]}</td>
             <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">
-                <a href="/admin/pedido/{p['id']}" style="background: #667eea; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-size: 12px;">Ver</a>
+                <a href="/admin/pedido/{p['id']}" style="background: #667eea; color: white; padding: 8px 16px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold;">👁️ Ver</a>
             </td>
         </tr>
         """

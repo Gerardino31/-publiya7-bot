@@ -92,9 +92,9 @@ class MessageRouter:
                 "Que tenga un excelente dia."
             ],
             "fallback": [
-                "Disculpe, no entendi bien. ¿Podria repetirme?",
-                "No estoy seguro de haber comprendido. ¿Me da mas detalles?",
-                "¿Podria reformular su pregunta? Con gusto le ayudo."
+                "🤔 No entendí bien. Escribe 'menu' para ver las opciones disponibles.",
+                "❓ No estoy seguro de qué necesitas. Escribe 'menu' para que te muestre las categorías.",
+                "💬 ¿Podrías ser más específico? Escribe 'menu' para ver todos nuestros productos."
             ]
         }
         return defaults.get(tipo, ["¿En que puedo ayudarle?"])
