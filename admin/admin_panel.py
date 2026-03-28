@@ -1972,7 +1972,7 @@ async def enviar_mensaje_asesor(cliente_id: str, user_id: str, mensaje: str = Fo
             <h1 style="color: #48bb78;">✅ Mensaje Enviado</h1>
             <p>El mensaje ha sido enviado a {user_id}</p>
             <br>
-            <a href="/admin/modo-humano/{cliente_id}/{user_id}" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Volver al Chat</a>
+            <a href="/admin/cliente-dashboard/{cliente_id}/modo-humano/{user_id}" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Volver al Chat</a>
         </body>
         </html>
         """)
