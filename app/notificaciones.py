@@ -1,9 +1,13 @@
 """
 notificaciones.py - Sistema de notificaciones para nuevos pedidos
-Envía alertas al dueño del negocio vía Email (SendGrid)
+Envía alertas al dueño del negocio vía Email (Gmail SMTP o SendGrid)
 """
 
 import os
+import smtplib
+import ssl
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from typing import Dict, List
 from datetime import datetime
 
@@ -21,8 +25,14 @@ class NotificadorPedidos:
     """Envía notificaciones cuando hay pedidos nuevos"""
     
     def __init__(self):
+        # Configuración SendGrid
         self.sendgrid_key = os.getenv('SENDGRID_API_KEY')
         self.email_from = os.getenv('EMAIL_FROM', 'pedidos@botlypro.com')
+        
+        # Configuración Gmail SMTP
+        self.gmail_user = os.getenv('GMAIL_USER', '')  # ej: publiya7@gmail.com
+        self.gmail_password = os.getenv('GMAIL_APP_PASSWORD', '')  # Contraseña de aplicación
+        self.use_gmail = bool(self.gmail_user and self.gmail_password)
         
         # Inicializar cliente SendGrid si hay API key
         if SENDGRID_AVAILABLE and self.sendgrid_key:
@@ -34,6 +44,12 @@ class NotificadorPedidos:
                 print("⚠️ SendGrid no disponible")
             if not self.sendgrid_key:
                 print("⚠️ SENDGRID_API_KEY no configurada")
+        
+        # Verificar Gmail SMTP
+        if self.use_gmail:
+            print(f"✅ Gmail SMTP configurado: {self.gmail_user}")
+        else:
+            print("⚠️ Gmail SMTP no configurado (GMAIL_USER o GMAIL_APP_PASSWORD faltan)")
     
     def notificar_nuevo_pedido(self, cliente_config: Dict, pedido: Dict, items: List[Dict]) -> bool:
         """
@@ -52,16 +68,54 @@ class NotificadorPedidos:
         return True
     
     def _notificar_email(self, cliente_config: Dict, pedido: Dict, items: List[Dict]) -> bool:
-        """Envía notificación por Email usando SendGrid"""
-        if not self.sg:
-            print("⚠️ SendGrid no configurado")
-            return False
-        
+        """Envía notificación por Email usando SendGrid o Gmail SMTP"""
         email_destino = cliente_config.get('email_notificaciones') or cliente_config.get('email')
         if not email_destino:
             print("⚠️ No hay email configurado para notificaciones")
             return False
         
+        # Intentar primero con Gmail SMTP si está configurado
+        if self.use_gmail:
+            return self._enviar_email_gmail(cliente_config, pedido, items, email_destino)
+        
+        # Si no hay Gmail, intentar con SendGrid
+        if self.sg:
+            return self._enviar_email_sendgrid(cliente_config, pedido, items, email_destino)
+        
+        print("⚠️ Ni Gmail ni SendGrid están configurados")
+        return False
+    
+    def _enviar_email_gmail(self, cliente_config: Dict, pedido: Dict, items: List[Dict], email_destino: str) -> bool:
+        """Envía email usando Gmail SMTP"""
+        try:
+            # Construir el email
+            mensaje_html = self._construir_email_html(cliente_config, pedido, items)
+            
+            # Crear mensaje MIME
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = f"🛒 Nuevo Pedido #{pedido.get('numero_orden')} - {cliente_config.get('nombre', 'Tu Negocio')}"
+            msg['From'] = self.gmail_user
+            msg['To'] = email_destino
+            
+            # Adjuntar contenido HTML
+            part = MIMEText(mensaje_html, 'html')
+            msg.attach(part)
+            
+            # Conectar a Gmail SMTP
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as server:
+                server.login(self.gmail_user, self.gmail_password)
+                server.sendmail(self.gmail_user, email_destino, msg.as_string())
+            
+            print(f"✅ Email enviado via Gmail a {email_destino}")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error enviando email via Gmail: {e}")
+            return False
+    
+    def _enviar_email_sendgrid(self, cliente_config: Dict, pedido: Dict, items: List[Dict], email_destino: str) -> bool:
+        """Envía email usando SendGrid"""
         try:
             # Construir el email
             mensaje_html = self._construir_email_html(cliente_config, pedido, items)
@@ -80,14 +134,14 @@ class NotificadorPedidos:
             response = self.sg.send(message)
             
             if response.status_code in [200, 201, 202]:
-                print(f"✅ Email enviado a {email_destino}: {response.status_code}")
+                print(f"✅ Email enviado via SendGrid a {email_destino}: {response.status_code}")
                 return True
             else:
-                print(f"⚠️ Error enviando email: {response.status_code}")
+                print(f"⚠️ Error enviando email via SendGrid: {response.status_code}")
                 return False
                 
         except Exception as e:
-            print(f"❌ Error enviando email: {e}")
+            print(f"❌ Error enviando email via SendGrid: {e}")
             return False
     
     def _construir_email_html(self, cliente_config: Dict, pedido: Dict, items: List[Dict]) -> str:
