@@ -2163,15 +2163,57 @@ async def ver_comprobante_detalle(cliente_id: str, comprobante_id: int):
 
 @router.post("/cliente-dashboard/{cliente_id}/pagos-pendientes/{comprobante_id}/verificar")
 async def verificar_pago(cliente_id: str, comprobante_id: int, estado: str = Form(...)):
-    """Marca el pago como verificado o rechazado"""
+    """Marca el pago como verificado o rechazado y notifica al cliente"""
     try:
         sys.path.append(str(Path(__file__).parent.parent))
         from database.database_saas import db_saas
+        import os
+        
+        # Obtener info del comprobante
+        conn = db_saas._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT user_id, pedido_id FROM comprobantes_pago WHERE id = ?', (comprobante_id,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            return HTMLResponse(content="<h1>❌ Comprobante no encontrado</h1>")
+        
+        user_id = row['user_id']
+        pedido_id = row['pedido_id']
         
         # Actualizar estado
         db_saas.verificar_comprobante(comprobante_id, "Admin", estado)
         
-        mensaje = "✅ Pago aprobado" if estado == "verificado" else "❌ Pago rechazado"
+        # Enviar notificación WhatsApp si está aprobado
+        if estado == "verificado":
+            try:
+                from twilio.rest import Client
+                
+                account_sid = os.getenv('TWILIO_ACCOUNT_SID')
+                auth_token = os.getenv('TWILIO_AUTH_TOKEN')
+                from_whatsapp = os.getenv('TWILIO_WHATSAPP_NUMBER', 'whatsapp:+14155238886')
+                
+                if account_sid and auth_token:
+                    client = Client(account_sid, auth_token)
+                    mensaje_whatsapp = f"""✅ ¡Pago aprobado!
+
+Tu pedido *{pedido_id}* está confirmado.
+
+Pronto comenzaremos con la producción. 🚀
+
+¿Tienes alguna pregunta? Escribe *ASESOR* para hablar con nosotros."""
+                    
+                    message = client.messages.create(
+                        from_=from_whatsapp,
+                        body=mensaje_whatsapp,
+                        to=f'whatsapp:{user_id}'
+                    )
+                    print(f"✅ Notificación enviada a {user_id}: {message.sid}")
+            except Exception as e:
+                print(f"⚠️ Error enviando notificación WhatsApp: {e}")
+        
+        mensaje = "✅ Pago aprobado y cliente notificado" if estado == "verificado" else "❌ Pago rechazado"
         
         return HTMLResponse(content=f"""
         <!DOCTYPE html>
