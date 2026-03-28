@@ -32,6 +32,22 @@ try:
 except Exception as e:
     logger.error(f"❌ Error cargando panel de administración: {e}")
 
+# Importar y registrar dashboard de analytics
+try:
+    from admin.dashboard_analytics import router as analytics_router
+    app.include_router(analytics_router)
+    logger.info("✅ Dashboard Analytics cargado")
+except Exception as e:
+    logger.error(f"❌ Error cargando dashboard analytics: {e}")
+
+# Importar y registrar API de dashboard
+try:
+    from core.dashboard_api import router as dashboard_api_router
+    app.include_router(dashboard_api_router)
+    logger.info("✅ API Dashboard cargada")
+except Exception as e:
+    logger.error(f"❌ Error cargando API dashboard: {e}")
+
 @app.get("/")
 async def root():
     """Endpoint raíz para verificar que el servicio está funcionando."""
