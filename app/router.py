@@ -176,8 +176,8 @@ class MessageRouter:
             
             menu += "\n"
         
-        menu += "\nEscriba el numero del producto que desea."
-        menu += "\n(Tambien puede escribir 'volver' para regresar o 'menu' para ir al inicio)"
+        menu += "\n🎯 Escribe el *número* del producto que deseas."
+        menu += "\n\n💡 *Comandos útiles:*\n↩️ Escribe *volver* para regresar\n🏠 Escribe *menu* para ir al inicio"
         return menu
     
     # ========== PROCESAMIENTO DE MENSAJES ==========
@@ -303,7 +303,7 @@ class MessageRouter:
                 estado.update({'paso': 0, 'categoria': None, 'producto': None, 'cantidad': None, 'total': 0})
                 return f"{self._frase_cortesia('despedida')} ¡Que tenga un excelente dia!", {'tipo': 'despedida'}
             else:
-                return "¿Desea realizar otro pedido? Escriba 'si' para ver el menú o 'no' para finalizar.", {'tipo': 'esperando_respuesta'}
+                return "🛒 ¿Deseas hacer *otro pedido*?\n\n✅ Escribe *si* para ver el menú\n❌ Escribe *no* para finalizar", {'tipo': 'esperando_respuesta'}
         
         # Fallback
         return self._frase_cortesia('fallback'), {'tipo': 'fallback'}
@@ -314,7 +314,7 @@ class MessageRouter:
         
         if paso_actual == 0:
             # Ya estamos en el inicio
-            return "Ya estas en el menu principal. ¿En que puedo ayudarte?", {'tipo': 'info'}
+            return "🏠 Ya estás en el *menú principal*.\n\n¿En qué puedo ayudarte hoy? 😊", {'tipo': 'info'}
         
         elif paso_actual == 1:
             # Volver al menu principal
@@ -465,7 +465,7 @@ class MessageRouter:
         except:
             pass
         
-        return "Por favor seleccione el numero del producto.", {'tipo': 'error'}
+        return "🎯 Por favor escribe el *número* del producto que deseas.\n\n💡 También puedes escribir:\n↩️ *volver* - para regresar\n🏠 *menu* - para ir al inicio", {'tipo': 'error'}
     
     def _procesar_cantidad(self, msg: str, estado: dict, user_id: str = None) -> Tuple[str, dict]:
         """Procesa cantidad o medidas y agrega al carrito."""
@@ -547,7 +547,7 @@ class MessageRouter:
                 if self.carrito:
                     mensaje = self.carrito.ver_carrito(cliente_id, user_id)
                     return mensaje, {'tipo': 'ver_carrito'}
-                return "¿Qué deseas hacer? 1-Otro producto 2-Ver carrito 3-Finalizar 4-Cancelar", {'tipo': 'carrito'}
+                return "🛒 *¿Qué deseas hacer?*\n\n1️⃣ Agregar *OTRO* producto\n2️⃣ *VER* carrito\n3️⃣ *FINALIZAR* pedido\n4️⃣ *CANCELAR* todo", {'tipo': 'carrito'}
             elif msg in ["cancelar", "3", "3️⃣"]:
                 # Cancelar todo
                 if self.carrito:
@@ -602,7 +602,7 @@ class MessageRouter:
                 return mensaje, {'tipo': 'pedido_confirmado'}
             except Exception as e:
                 print(f"[ERROR] Error finalizando pedido: {e}")
-                return "❌ Error al procesar el pedido. Intente de nuevo.", {'tipo': 'error'}
+                return "❌ *Error al procesar el pedido.*\n\nPor favor intenta de nuevo o escribe *menu* para reiniciar. 🔄", {'tipo': 'error'}
         else:
             return self._finalizar_pedido_simple({}, user_id, cliente_id)
     
