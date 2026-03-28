@@ -74,11 +74,52 @@ async def receive_webhook(
         if NumMedia != "0" and MediaUrl0:
             logger.info(f"📸 Imagen recibida de {from_number}: {MediaUrl0}")
             
-            # Buscar pedido reciente pendiente de pago
-            # Por ahora guardamos la imagen y notificamos
-            # TODO: Implementar descarga y guardado de imagen
-            
-            respuesta_texto = "✅ Comprobante recibido.\n\n⏳ Verificando pago...\n\nTe notificaremos cuando sea confirmado."
+            try:
+                # Buscar pedido reciente del usuario (últimas 24 horas)
+                import requests
+                from database.database_saas import db_saas
+                
+                # Obtener cliente_id (por ahora hardcoded para publiya7, luego autodetectar)
+                cliente_id = 'publiya7'
+                
+                # Buscar pedido más reciente del usuario
+                conn = db_saas._get_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT numero_orden FROM pedidos 
+                    WHERE cliente_id = ? AND usuario_id = ? 
+                    AND creado_en > datetime('now', '-1 day')
+                    ORDER BY creado_en DESC LIMIT 1
+                """, (cliente_id, from_number))
+                row = cursor.fetchone()
+                conn.close()
+                
+                pedido_id = row['numero_orden'] if row else 'SIN-PEDIDO'
+                
+                # Descargar imagen de Twilio
+                import base64
+                from io import BytesIO
+                
+                # Twilio requiere autenticación para descargar media
+                # Por ahora guardamos la URL y notificamos
+                # TODO: Implementar descarga completa con auth
+                
+                # Guardar referencia en BD
+                db_saas.guardar_comprobante_pago(
+                    cliente_id=cliente_id,
+                    user_id=from_number,
+                    pedido_id=pedido_id,
+                    imagen_data=MediaUrl0.encode(),  # Guardamos URL por ahora
+                    content_type=MediaContentType0 or 'image/jpeg'
+                )
+                
+                logger.info(f"✅ Comprobante guardado para pedido {pedido_id}")
+                
+                respuesta_texto = "✅ Comprobante recibido.\n\n⏳ Verificando pago...\n\nTe notificaremos cuando sea confirmado."
+                
+            except Exception as e:
+                logger.error(f"Error guardando comprobante: {e}")
+                respuesta_texto = "⚠️ Recibimos tu comprobante pero hubo un error. Por favor contacta al asesor."
             
             # Twilio espera una respuesta en formato TwiML
             twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
