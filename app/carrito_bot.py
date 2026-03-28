@@ -12,6 +12,33 @@ class CarritoBot:
     def __init__(self, config: Dict):
         self.config = config
     
+    def _calcular_descuento_info(self, producto: Dict, cantidad: int, total: int) -> Dict:
+        """Calcula información del descuento aplicado para mostrar al cliente"""
+        precio_1000 = producto.get('precio_1000', 0)
+        
+        if cantidad >= 5000 and 'precio_5000' in producto:
+            # 10% de descuento para 5000+
+            precio_sin_descuento = int((precio_1000 / 1000) * cantidad)
+            ahorro = precio_sin_descuento - total
+            return {
+                'tiene_descuento': True,
+                'porcentaje': 10,
+                'ahorro': ahorro,
+                'precio_sin_descuento': precio_sin_descuento
+            }
+        elif cantidad >= 2000 and 'precio_2000' in producto:
+            # 5% de descuento para 2000+
+            precio_sin_descuento = int((precio_1000 / 1000) * cantidad)
+            ahorro = precio_sin_descuento - total
+            return {
+                'tiene_descuento': True,
+                'porcentaje': 5,
+                'ahorro': ahorro,
+                'precio_sin_descuento': precio_sin_descuento
+            }
+        
+        return {'tiene_descuento': False}
+    
     def agregar_producto(self, cliente_id: str, user_id: str, 
                         estado: Dict, area: int = None) -> str:
         """Agrega un producto al carrito y retorna mensaje para el usuario"""
@@ -82,6 +109,9 @@ class CarritoBot:
         
         tiempo_entrega = self._calcular_tiempo_entrega(cat_id, cantidad_num or 0)
         
+        # Calcular información de descuento
+        descuento_info = self._calcular_descuento_info(producto, cantidad_num or 0, total)
+        
         # Obtener resumen actual del carrito (después de agregar el item)
         carrito_actualizado = db_saas.obtener_carrito_por_id(carrito_id)
         items = db_saas.obtener_items_carrito(carrito_id)
@@ -93,10 +123,24 @@ class CarritoBot:
             "",
             f"• {producto.get('nombre')}",
             f"• Cantidad: {cantidad_str}",
-            f"• Subtotal: ${total:,} COP",
+        ]
+        
+        # Agregar información de descuento si aplica
+        if descuento_info['tiene_descuento']:
+            lineas.extend([
+                f"• 💵 Precio normal: ${descuento_info['precio_sin_descuento']:,} COP",
+                f"• 🏷️ Descuento: {descuento_info['porcentaje']}%",
+                f"• 💰 Subtotal: ${total:,} COP",
+                f"• 💚 Ahorro: ${descuento_info['ahorro']:,} COP",
+            ])
+        else:
+            lineas.append(f"• Subtotal: ${total:,} COP")
+        
+        lineas.extend([
             f"• Entrega: {tiempo_entrega}",
             "",
             f"🛒 CARRITO ACTUAL ({len(items)} productos):",
+        ])
             f"💰 Total: ${total_carrito:,} COP",
             "",
             "¿Qué deseas hacer?",
