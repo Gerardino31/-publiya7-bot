@@ -1810,4 +1810,182 @@ async def exportar_pedidos_cliente(cliente_id: str):
     except Exception as e:
         return HTMLResponse(content=f"<h1>❌ Error al exportar</h1><p>{str(e)}</p><a href='/admin/cliente-dashboard/{cliente_id}'>Volver</a>")
 
+# ============================================
+# V2: MODO HUMANO - ENDPOINTS PARA ASESORES
+# ============================================
+
+@router.get("/modo-humano/{cliente_id}")
+async def panel_modo_humano(cliente_id: str):
+    """Panel para ver usuarios en modo humano y responder"""
+    try:
+        sys.path.append(str(Path(__file__).parent.parent))
+        from database.database_saas import db_saas
+        
+        # Obtener usuarios en modo humano
+        conn = db_saas._get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT user_id, modo, fecha_cambio 
+            FROM usuario_modo 
+            WHERE cliente_id = ? AND modo = 'humano'
+            ORDER BY fecha_cambio DESC
+        """)
+        usuarios = cursor.fetchall()
+        conn.close()
+        
+        # Generar HTML
+        filas = ""
+        for u in usuarios:
+            filas += f"""
+            <tr>
+                <td>{u['user_id']}</td>
+                <td>🟢 Activo</td>
+                <td>{u['fecha_cambio'][:19]}</td>
+                <td>
+                    <a href="/admin/modo-humano/{cliente_id}/{u['user_id']}" 
+                       style="background: #667eea; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">
+                       💬 Responder
+                    </a>
+                </td>
+            </tr>
+            """
+        
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Modo Humano - {cliente_id}</title>
+            <style>
+                body {{ font-family: Arial; margin: 0; background: #f7fafc; }}
+                .header {{ background: #667eea; color: white; padding: 20px; }}
+                .container {{ padding: 30px; max-width: 1200px; margin: 0 auto; }}
+                table {{ width: 100%; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                th {{ background: #764ba2; color: white; padding: 15px; text-align: left; }}
+                td {{ padding: 15px; border-bottom: 1px solid #e2e8f0; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>🤖 BotlyPro - Modo Humano</h2>
+            </div>
+            <div class="container">
+                <h1>👥 Conversaciones Activas con Asesor</h1>
+                <p>Clientes que solicitaron hablar con un asesor:</p>
+                <table>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Estado</th>
+                        <th>Solicitado</th>
+                        <th>Acción</th>
+                    </tr>
+                    {filas if filas else '<tr><td colspan="4" style="text-align: center;">No hay conversaciones activas</td></tr>'}
+                </table>
+                <br>
+                <a href="/admin/dashboard" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">← Volver al Dashboard</a>
+            </div>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
+
+@router.get("/modo-humano/{cliente_id}/{user_id}")
+async def chat_asesor(cliente_id: str, user_id: str):
+    """Chat para que el asesor responda al usuario"""
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Chat Asesor - {user_id}</title>
+        <style>
+            body {{ font-family: Arial; margin: 0; background: #f7fafc; }}
+            .header {{ background: #667eea; color: white; padding: 20px; }}
+            .container {{ padding: 30px; max-width: 800px; margin: 0 auto; }}
+            .chat {{ background: white; border-radius: 10px; padding: 20px; min-height: 300px; margin: 20px 0; }}
+            textarea {{ width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }}
+            button {{ background: #48bb78; color: white; padding: 15px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }}
+            .btn-danger {{ background: #f56565; }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h2>💬 Chat con {user_id}</h2>
+        </div>
+        <div class="container">
+            <div class="chat" id="chat">
+                <p><em>El historial de mensajes aparecerá aquí...</em></p>
+            </div>
+            
+            <form action="/admin/modo-humano/{cliente_id}/{user_id}/enviar" method="POST">
+                <textarea name="mensaje" rows="4" placeholder="Escribe tu mensaje..."></textarea>
+                <br>
+                <button type="submit">📤 Enviar Mensaje</button>
+            </form>
+            
+            <br><br>
+            
+            <form action="/admin/modo-humano/{cliente_id}/{user_id}/reactivar" method="POST">
+                <button type="submit" class="btn-danger">🤖 Reactivar Bot</button>
+            </form>
+            
+            <br>
+            <a href="/admin/modo-humano/{cliente_id}">← Volver a la lista</a>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
+
+@router.post("/modo-humano/{cliente_id}/{user_id}/enviar")
+async def enviar_mensaje_asesor(cliente_id: str, user_id: str, mensaje: str = Form(...)):
+    """Asesor envía mensaje al usuario"""
+    try:
+        sys.path.append(str(Path(__file__).parent.parent))
+        from database.database_saas import db_saas
+        
+        # Guardar mensaje para que el bot lo envíe
+        db_saas.guardar_mensaje_asesor(cliente_id, user_id, mensaje, "Asesor")
+        
+        return HTMLResponse(content=f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Mensaje Enviado</title></head>
+        <body style="font-family: Arial; text-align: center; padding: 50px;">
+            <h1 style="color: #48bb78;">✅ Mensaje Enviado</h1>
+            <p>El mensaje ha sido enviado a {user_id}</p>
+            <br>
+            <a href="/admin/modo-humano/{cliente_id}/{user_id}" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Volver al Chat</a>
+        </body>
+        </html>
+        """)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
+
+@router.post("/modo-humano/{cliente_id}/{user_id}/reactivar")
+async def reactivar_bot(cliente_id: str, user_id: str):
+    """Reactivar bot para el usuario"""
+    try:
+        sys.path.append(str(Path(__file__).parent.parent))
+        from database.database_saas import db_saas
+        
+        # Cambiar modo a 'bot'
+        db_saas.set_modo_usuario(cliente_id, user_id, 'bot', 'asesor')
+        
+        return HTMLResponse(content=f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Bot Reactivado</title></head>
+        <body style="font-family: Arial; text-align: center; padding: 50px;">
+            <h1 style="color: #48bb78;">🤖 Bot Reactivado</h1>
+            <p>El usuario {user_id} volverá a interactuar con el bot.</p>
+            <br>
+            <a href="/admin/modo-humano/{cliente_id}" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Volver a Modo Humano</a>
+        </body>
+        </html>
+        """)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
+
 print("✅ Panel simple cargado")

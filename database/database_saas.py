@@ -498,6 +498,133 @@ class DatabaseSaaS:
         except Exception as e:
             print(f"[ERROR] guardar_conversacion: {e}")
             return False
+    
+    # ============================================
+    # MODO HUMANO (v2 - Asesor)
+    # ============================================
+    
+    def obtener_modo_usuario(self, cliente_id: str, user_id: str) -> str:
+        """Obtiene el modo actual del usuario (bot o humano)"""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            # Crear tabla si no existe
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS usuario_modo (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cliente_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    modo TEXT DEFAULT 'bot',
+                    activado_por TEXT,
+                    fecha_cambio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(cliente_id, user_id)
+                )
+            ''')
+            
+            cursor.execute('''
+                SELECT modo FROM usuario_modo 
+                WHERE cliente_id = ? AND user_id = ?
+            ''', (cliente_id, user_id))
+            
+            row = cursor.fetchone()
+            conn.close()
+            
+            return row['modo'] if row else 'bot'
+        except Exception as e:
+            print(f"[ERROR] obtener_modo_usuario: {e}")
+            return 'bot'
+    
+    def set_modo_usuario(self, cliente_id: str, user_id: str, modo: str, activado_por: str = 'sistema') -> bool:
+        """Cambia el modo del usuario (bot o humano)"""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            # Crear tabla si no existe
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS usuario_modo (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cliente_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    modo TEXT DEFAULT 'bot',
+                    activado_por TEXT,
+                    fecha_cambio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(cliente_id, user_id)
+                )
+            ''')
+            
+            cursor.execute('''
+                INSERT OR REPLACE INTO usuario_modo 
+                (cliente_id, user_id, modo, activado_por, fecha_cambio)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (cliente_id, user_id, modo, activado_por, datetime.now()))
+            
+            conn.commit()
+            conn.close()
+            print(f"✅ Modo cambiado a '{modo}' para {user_id}")
+            return True
+        except Exception as e:
+            print(f"[ERROR] set_modo_usuario: {e}")
+            return False
+    
+    def guardar_mensaje_asesor(self, cliente_id: str, user_id: str, mensaje: str, asesor: str) -> bool:
+        """Guarda mensaje enviado por asesor"""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            # Crear tabla
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS mensajes_asesor (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cliente_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    mensaje TEXT,
+                    asesor TEXT,
+                    enviado BOOLEAN DEFAULT 0,
+                    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            cursor.execute('''
+                INSERT INTO mensajes_asesor (cliente_id, user_id, mensaje, asesor)
+                VALUES (?, ?, ?, ?)
+            ''', (cliente_id, user_id, mensaje, asesor))
+            
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"[ERROR] guardar_mensaje_asesor: {e}")
+            return False
+    
+    def obtener_mensajes_pendientes_asesor(self, cliente_id: str, user_id: str) -> List[Dict]:
+        """Obtiene mensajes del asesor pendientes de enviar"""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT * FROM mensajes_asesor 
+                WHERE cliente_id = ? AND user_id = ? AND enviado = 0
+                ORDER BY fecha ASC
+            ''', (cliente_id, user_id))
+            
+            mensajes = [dict(row) for row in cursor.fetchall()]
+            
+            # Marcar como enviados
+            cursor.execute('''
+                UPDATE mensajes_asesor SET enviado = 1
+                WHERE cliente_id = ? AND user_id = ? AND enviado = 0
+            ''', (cliente_id, user_id))
+            
+            conn.commit()
+            conn.close()
+            return mensajes
+        except Exception as e:
+            print(f"[ERROR] obtener_mensajes_pendientes_asesor: {e}")
+            return []
 
 # Instancia global
 db_saas = DatabaseSaaS()

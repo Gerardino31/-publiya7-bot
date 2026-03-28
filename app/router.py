@@ -201,6 +201,11 @@ class MessageRouter:
             # Detectar intencion y procesar
             respuesta, metadata = self._procesar_intencion(msg, estado, cliente_id, user_id)
             
+            # V2: Si está en modo humano, no responder
+            if metadata.get('silencio'):
+                print(f"[MODO HUMANO] Bot silenciado para {user_id}")
+                return "", {'tipo': 'silencio'}
+            
             # DEBUG: Log estado después de procesar
             print(f"[DEBUG] Después - Paso: {estado.get('paso')}, Categoria: {estado.get('categoria')}")
             
@@ -226,6 +231,32 @@ class MessageRouter:
     
     def _procesar_intencion(self, msg: str, estado: dict, cliente_id: str, user_id: str) -> Tuple[str, dict]:
         """Detecta intencion y procesa el mensaje."""
+        
+        # ============================================
+        # V2: MODO HUMANO - Verificar si usuario está en modo asesor
+        # ============================================
+        try:
+            modo = db.obtener_modo_usuario(cliente_id, user_id) if db else 'bot'
+            if modo == 'humano':
+                # El bot no responde, el asesor maneja la conversación
+                # Solo guardamos el mensaje para que el asesor lo vea
+                print(f"[MODO HUMANO] Mensaje de {user_id}: {msg}")
+                return None, {'tipo': 'modo_humano', 'silencio': True}
+        except Exception as e:
+            print(f"[ERROR] Verificando modo humano: {e}")
+        
+        # ============================================
+        # V2: ACTIVAR MODO HUMANO
+        # ============================================
+        PALABRAS_ASESOR = ["asesor", "humano", "ayuda", "persona", "agente", "representante"]
+        if any(p in msg.lower() for p in PALABRAS_ASESOR):
+            if db:
+                db.set_modo_usuario(cliente_id, user_id, 'humano', 'usuario')
+            return """👋 Entendido. Te conecto con un asesor.
+
+⏸️ El bot se ha pausado temporalmente para esta conversación.
+
+📩 Un asesor te responderá pronto. Por favor espera...""", {'tipo': 'activar_humano'}
         
         # Comandos especiales de navegacion
         if msg in ["volver", "atras", "anterior", "regresar"]:
