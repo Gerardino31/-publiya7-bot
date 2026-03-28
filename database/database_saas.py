@@ -374,6 +374,24 @@ class DatabaseSaaS:
             conn = self._get_connection()
             cursor = conn.cursor()
             
+            # Crear tabla si no existe
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS estado_conversacion (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cliente_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    paso INTEGER DEFAULT 0,
+                    categoria TEXT,
+                    producto INTEGER,
+                    cantidad TEXT,
+                    total INTEGER DEFAULT 0,
+                    datos_extra TEXT,
+                    actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(cliente_id, user_id)
+                )
+            ''')
+            conn.commit()
+            
             cursor.execute('''
                 SELECT * FROM estado_conversacion 
                 WHERE cliente_id = ? AND user_id = ?
@@ -425,18 +443,41 @@ class DatabaseSaaS:
             conn = self._get_connection()
             cursor = conn.cursor()
             
-            # Crear tabla si no existe (sin NOT NULL en user_id)
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS conversaciones (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    cliente_id TEXT,
-                    user_id TEXT,
-                    mensaje TEXT,
-                    respuesta TEXT,
-                    tipo TEXT,
-                    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
+            # Verificar si tabla existe y tiene la columna user_id
+            cursor.execute("PRAGMA table_info(conversaciones)")
+            columnas = cursor.fetchall()
+            
+            if not columnas:
+                # Tabla no existe, crearla
+                cursor.execute('''
+                    CREATE TABLE conversaciones (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        cliente_id TEXT,
+                        user_id TEXT,
+                        mensaje TEXT,
+                        respuesta TEXT,
+                        tipo TEXT,
+                        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
+            else:
+                # Tabla existe, verificar si tiene user_id
+                nombres_columnas = [col[1] for col in columnas]
+                if 'user_id' not in nombres_columnas:
+                    # Backup de datos, recrear tabla
+                    cursor.execute('ALTER TABLE conversaciones RENAME TO conversaciones_old')
+                    cursor.execute('''
+                        CREATE TABLE conversaciones (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            cliente_id TEXT,
+                            user_id TEXT,
+                            mensaje TEXT,
+                            respuesta TEXT,
+                            tipo TEXT,
+                            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    ''')
+                    cursor.execute('DROP TABLE conversaciones_old')
             
             cursor.execute('''
                 INSERT INTO conversaciones (cliente_id, user_id, mensaje, respuesta, tipo)
