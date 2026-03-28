@@ -1406,7 +1406,10 @@ async def cliente_dashboard(cliente_id: str):
         <div class="container">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h1>📊 Dashboard de Ventas</h1>
-                <a href="/admin/cliente-dashboard/{cliente_id}/exportar" style="background: #38a169; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">📊 Exportar Mis Ventas</a>
+                <div>
+                    <a href="/admin/cliente-dashboard/{cliente_id}/modo-humano" style="background: #ed8936; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;">👥 Modo Humano</a>
+                    <a href="/admin/cliente-dashboard/{cliente_id}/exportar" style="background: #38a169; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">📊 Exportar Mis Ventas</a>
+                </div>
             </div>
             
             <!-- KPIs -->
@@ -1814,7 +1817,7 @@ async def exportar_pedidos_cliente(cliente_id: str):
 # V2: MODO HUMANO - ENDPOINTS PARA ASESORES
 # ============================================
 
-@router.get("/modo-humano/{cliente_id}")
+@router.get("/cliente-dashboard/{cliente_id}/modo-humano")
 async def panel_modo_humano(cliente_id: str):
     """Panel para ver usuarios en modo humano y responder"""
     try:
@@ -1843,7 +1846,7 @@ async def panel_modo_humano(cliente_id: str):
                 <td>🟢 Activo</td>
                 <td>{u['fecha_cambio'][:19]}</td>
                 <td>
-                    <a href="/admin/modo-humano/{cliente_id}/{u['user_id']}" 
+                    <a href="/admin/cliente-dashboard/{cliente_id}/modo-humano/{u['user_id']}" 
                        style="background: #667eea; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">
                        💬 Responder
                     </a>
@@ -1891,7 +1894,7 @@ async def panel_modo_humano(cliente_id: str):
     except Exception as e:
         return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
 
-@router.get("/modo-humano/{cliente_id}/{user_id}")
+@router.get("/cliente-dashboard/{cliente_id}/modo-humano/{user_id}")
 async def chat_asesor(cliente_id: str, user_id: str):
     """Chat para que el asesor responda al usuario"""
     html = f"""
@@ -1918,7 +1921,7 @@ async def chat_asesor(cliente_id: str, user_id: str):
                 <p><em>El historial de mensajes aparecerá aquí...</em></p>
             </div>
             
-            <form action="/admin/modo-humano/{cliente_id}/{user_id}/enviar" method="POST">
+            <form action="/admin/cliente-dashboard/{cliente_id}/modo-humano/{user_id}/enviar" method="POST">
                 <textarea name="mensaje" rows="4" placeholder="Escribe tu mensaje..."></textarea>
                 <br>
                 <button type="submit">📤 Enviar Mensaje</button>
@@ -1926,19 +1929,19 @@ async def chat_asesor(cliente_id: str, user_id: str):
             
             <br><br>
             
-            <form action="/admin/modo-humano/{cliente_id}/{user_id}/reactivar" method="POST">
+            <form action="/admin/cliente-dashboard/{cliente_id}/modo-humano/{user_id}/reactivar" method="POST">
                 <button type="submit" class="btn-danger">🤖 Reactivar Bot</button>
             </form>
             
             <br>
-            <a href="/admin/modo-humano/{cliente_id}">← Volver a la lista</a>
+            <a href="/admin/cliente-dashboard/{cliente_id}/modo-humano">← Volver a la lista</a>
         </div>
     </body>
     </html>
     """
     return HTMLResponse(content=html)
 
-@router.post("/modo-humano/{cliente_id}/{user_id}/enviar")
+@router.post("/cliente-dashboard/{cliente_id}/modo-humano/{user_id}/enviar")
 async def enviar_mensaje_asesor(cliente_id: str, user_id: str, mensaje: str = Form(...)):
     """Asesor envía mensaje al usuario"""
     try:
@@ -1963,7 +1966,7 @@ async def enviar_mensaje_asesor(cliente_id: str, user_id: str, mensaje: str = Fo
     except Exception as e:
         return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
 
-@router.post("/modo-humano/{cliente_id}/{user_id}/reactivar")
+@router.post("/cliente-dashboard/{cliente_id}/modo-humano/{user_id}/reactivar")
 async def reactivar_bot(cliente_id: str, user_id: str):
     """Reactivar bot para el usuario"""
     try:
