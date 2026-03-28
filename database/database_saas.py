@@ -430,6 +430,13 @@ class DatabaseSaaS:
                 )
             ''')
             
+            # Verificar si la columna user_id existe, si no, agregarla
+            cursor.execute("PRAGMA table_info(conversaciones)")
+            columnas = [col[1] for col in cursor.fetchall()]
+            if 'user_id' not in columnas:
+                cursor.execute('ALTER TABLE conversaciones ADD COLUMN user_id TEXT')
+                conn.commit()
+            
             cursor.execute('''
                 INSERT INTO conversaciones (cliente_id, user_id, mensaje, respuesta, tipo)
                 VALUES (?, ?, ?, ?, ?)
