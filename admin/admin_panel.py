@@ -3,10 +3,12 @@ admin_panel.py - Panel de Administración BotlyPro (Versión Simple)
 """
 
 from fastapi import APIRouter, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from pathlib import Path
 from datetime import datetime
 import json
+import csv
+import io
 
 router = APIRouter(prefix="/admin")
 
@@ -149,6 +151,7 @@ async def dashboard():
                 <h1>Dashboard</h1>
                 <div>
                     <a href="/admin/pedidos" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;">📦 Ver Pedidos</a>
+                    <a href="/admin/exportar-pedidos" style="background: #38a169; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;">📊 Exportar Excel</a>
                     <a href="/admin/nuevo-cliente" style="background: #48bb78; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">➕ Nuevo Cliente</a>
                 </div>
             </div>
@@ -1400,7 +1403,10 @@ async def cliente_dashboard(cliente_id: str):
         </div>
         
         <div class="container">
-            <h1>📊 Dashboard de Ventas</h1>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1>📊 Dashboard de Ventas</h1>
+                <a href="/admin/cliente-dashboard/{cliente_id}/exportar" style="background: #38a169; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">📊 Exportar Mis Ventas</a>
+            </div>
             
             <!-- KPIs -->
             <div class="kpi-grid">
@@ -1680,5 +1686,118 @@ async def toggle_cliente_estado(cliente_id: str):
         return RedirectResponse(url="/admin/dashboard", status_code=302)
     except Exception as e:
         return HTMLResponse(content=f"<h1>❌ Error al cambiar estado</h1><p>{str(e)}</p><a href='/admin/dashboard'>Volver</a>")
+
+@router.get("/exportar-pedidos")
+async def exportar_pedidos_csv():
+    """Exporta todos los pedidos a CSV para contabilidad"""
+    try:
+        sys.path.append(str(Path(__file__).parent.parent))
+        from database.database_saas import db_saas
+        
+        conn = db_saas._get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT p.numero_orden, p.cliente_id, p.usuario_id, p.total, 
+                   p.estado, p.creado_en, p.nombre_comprador, p.telefono_contacto,
+                   c.nombre as cliente_nombre
+            FROM pedidos p
+            JOIN clientes c ON p.cliente_id = c.cliente_id
+            ORDER BY p.creado_en DESC
+        """)
+        
+        pedidos = cursor.fetchall()
+        conn.close()
+        
+        # Crear CSV en memoria
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Encabezados
+        writer.writerow([
+            'Numero Orden', 'Cliente', 'Usuario', 'Nombre Comprador',
+            'Telefono', 'Total', 'Estado', 'Fecha Creacion'
+        ])
+        
+        # Datos
+        for p in pedidos:
+            writer.writerow([
+                p['numero_orden'],
+                p['cliente_nombre'],
+                p['usuario_id'],
+                p['nombre_comprador'] or '',
+                p['telefono_contacto'] or '',
+                p['total'],
+                p['estado'],
+                p['creado_en']
+            ])
+        
+        output.seek(0)
+        
+        return StreamingResponse(
+            io.BytesIO(output.getvalue().encode('utf-8-sig')),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=pedidos_{datetime.now().strftime('%Y%m%d')}.csv"
+            }
+        )
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>❌ Error al exportar</h1><p>{str(e)}</p><a href='/admin/dashboard'>Volver</a>")
+
+@router.get("/cliente-dashboard/{cliente_id}/exportar")
+async def exportar_pedidos_cliente(cliente_id: str):
+    """Exporta pedidos de un cliente específico a CSV"""
+    try:
+        import sys
+        sys.path.append(str(Path(__file__).parent.parent))
+        from database.database_saas import db_saas
+        
+        conn = db_saas._get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT p.numero_orden, p.usuario_id, p.total, 
+                   p.estado, p.creado_en, p.nombre_comprador, p.telefono_contacto
+            FROM pedidos p
+            WHERE p.cliente_id = ?
+            ORDER BY p.creado_en DESC
+        """, (cliente_id,))
+        
+        pedidos = cursor.fetchall()
+        conn.close()
+        
+        # Crear CSV en memoria
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Encabezados
+        writer.writerow([
+            'Numero Orden', 'Comprador', 'Telefono', 'Usuario',
+            'Total', 'Estado', 'Fecha Creacion'
+        ])
+        
+        # Datos
+        for p in pedidos:
+            writer.writerow([
+                p['numero_orden'],
+                p['nombre_comprador'] or '',
+                p['telefono_contacto'] or '',
+                p['usuario_id'],
+                p['total'],
+                p['estado'],
+                p['creado_en']
+            ])
+        
+        output.seek(0)
+        
+        return StreamingResponse(
+            io.BytesIO(output.getvalue().encode('utf-8-sig')),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=ventas_{cliente_id}_{datetime.now().strftime('%Y%m%d')}.csv"
+            }
+        )
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>❌ Error al exportar</h1><p>{str(e)}</p><a href='/admin/cliente-dashboard/{cliente_id}'>Volver</a>")
 
 print("✅ Panel simple cargado")
