@@ -79,9 +79,9 @@ class CarritoBot:
             medidas = None
             area_cm2 = None
         
-        # Calcular precio unitario
+        # Calcular precio unitario (usar round para mantener decimales en cm2)
         if area_cm2:
-            precio_unitario = int(total / area_cm2) if area_cm2 > 0 else 0
+            precio_unitario = round(total / area_cm2, 2) if area_cm2 > 0 else 0
         elif cantidad_num and cantidad_num > 0:
             precio_unitario = int(total / cantidad_num)
         else:
@@ -179,7 +179,13 @@ class CarritoBot:
                 cantidad_str = f"{item['cantidad']:,} unid"
             
             lineas.append(f"{i}. {item['nombre_producto']}")
-            lineas.append(f"   {cantidad_str} × ${item['precio_unitario']:,} = ${item['subtotal']:,}")
+            # Mostrar precio unitario con decimales si es necesario
+            precio_unit = item['precio_unitario']
+            if isinstance(precio_unit, float) and precio_unit != int(precio_unit):
+                precio_str = f"{precio_unit:,.2f}"
+            else:
+                precio_str = f"{int(precio_unit):,}"
+            lineas.append(f"   {cantidad_str} × ${precio_str} = ${item['subtotal']:,}")
             lineas.append("")
         
         lineas.append(f"💰 TOTAL: ${carrito['total']:,} COP")
