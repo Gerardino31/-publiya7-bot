@@ -2131,8 +2131,12 @@ async def ver_comprobante_detalle(cliente_id: str, comprobante_id: int):
                 
                 <div class="card">
                     <h3>🖼️ Comprobante</h3>
-                    <p><em>Imagen del comprobante (URL):</em></p>
-                    <code>{comprobante['imagen_data'][:100]}...</code>
+                    <p><em>Click para ver imagen:</em></p>
+                    <a href="{comprobante['imagen_data'].decode()}" target="_blank" style="background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                        📸 Ver Comprobante
+                    </a>
+                    <br><br>
+                    <small style="color: #718096;">URL: {comprobante['imagen_data'][:80].decode()}...</small>
                 </div>
                 
                 <div class="card">
