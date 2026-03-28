@@ -1824,10 +1824,23 @@ async def panel_modo_humano(cliente_id: str):
         sys.path.append(str(Path(__file__).parent.parent))
         from database.database_saas import db_saas
         
-        # Obtener usuarios en modo humano
+        # Crear tabla si no existe
         conn = db_saas._get_connection()
         cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS usuario_modo (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cliente_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                modo TEXT DEFAULT 'bot',
+                activado_por TEXT,
+                fecha_cambio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(cliente_id, user_id)
+            )
+        ''')
+        conn.commit()
         
+        # Obtener usuarios en modo humano
         cursor.execute("""
             SELECT user_id, modo, fecha_cambio 
             FROM usuario_modo 
