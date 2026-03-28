@@ -1698,17 +1698,27 @@ async def exportar_pedidos_csv():
         conn = db_saas._get_connection()
         cursor = conn.cursor()
         
+        # Verificar que la tabla pedidos existe
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='pedidos'")
+        if not cursor.fetchone():
+            conn.close()
+            return HTMLResponse(content="<h1>❌ No hay pedidos registrados</h1><p>La tabla de pedidos está vacía.</p><a href='/admin/dashboard'>Volver</a>")
+        
         cursor.execute("""
             SELECT p.numero_orden, p.cliente_id, p.usuario_id, p.total, 
                    p.estado, p.creado_en, p.nombre_comprador, p.telefono_contacto,
                    c.nombre as cliente_nombre
             FROM pedidos p
-            JOIN clientes c ON p.cliente_id = c.cliente_id
+            LEFT JOIN clientes c ON p.cliente_id = c.cliente_id
             ORDER BY p.creado_en DESC
         """)
         
         pedidos = cursor.fetchall()
         conn.close()
+        
+        # Si no hay pedidos, mostrar mensaje
+        if not pedidos:
+            return HTMLResponse(content="<h1>📭 No hay pedidos registrados</h1><p>Aún no se han realizado pedidos en el sistema.</p><a href='/admin/dashboard'>Volver</a>")
         
         # Crear CSV en memoria
         output = io.StringIO()
