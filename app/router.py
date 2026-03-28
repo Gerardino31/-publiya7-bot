@@ -125,8 +125,9 @@ class MessageRouter:
             emoji_numero = numeros_emojis[i-1] if i <= len(numeros_emojis) else f"{i}."
             menu += f"\n{emoji_numero} {cat_data.get('nombre', cat_id)}"
         
-        menu += "\n\nEscribe el número o nombre de la categoría que necesites."
-        menu += "\n(También puedes escribir 'menu' en cualquier momento para volver aquí)"
+        menu += "\n\n🎯 *Escribe el número* de la categoría que necesites"
+        menu += "\n💡 También puedes escribir el *nombre* directamente"
+        menu += "\n🏠 Escribe *menu* en cualquier momento para volver aquí"
         return menu
     
     def _get_emoji_categoria(self, cat_id: str) -> str:
@@ -350,7 +351,7 @@ class MessageRouter:
             else:
                 prompt = "¿Que cantidad necesita? (Ejemplo: 1000, 5000, 10000 unidades)"
             
-            return f"[VOLVER] Volvamos a la cantidad.\n\n{prompt}", {'tipo': 'volver'}
+            return f"↩️ *Volvamos atrás*\n\n{prompt}", {'tipo': 'volver'}
         
         return self.generar_menu_principal(), {'tipo': 'menu_principal'}
     
@@ -433,7 +434,7 @@ class MessageRouter:
                 estado['paso'] = 1
                 return self.generar_menu_categoria(cat_id), {'tipo': 'menu_categoria', 'categoria': cat_id}
         
-        return f"Disculpe, no reconoci esa categoria. {self._frase_cortesia('general')}", {'tipo': 'error'}
+        return f"❓ *No reconocí esa categoría.*\n\n{self._frase_cortesia('general')}\n\n💡 Escribe *menu* para ver las opciones disponibles.", {'tipo': 'error'}
     
     def _procesar_producto(self, msg: str, estado: dict) -> Tuple[str, dict]:
         """Procesa seleccion de producto."""
@@ -451,7 +452,7 @@ class MessageRouter:
                 
                 # Verificar si requiere cotizacion personalizada
                 if producto.get('requiere_cotizacion'):
-                    return f"[COTIZACION PERSONALIZADA]\n\n{producto['nombre']}\n\nEste producto requiere cotizacion personalizada. Por favor contactenos al {self.config.get('telefono')}.", {'tipo': 'cotizacion_personalizada'}
+                    return f"📋 *{producto['nombre']}*\n\n⚠️ Este producto requiere *cotización personalizada*.\n\n📞 Por favor contáctanos al: {self.config.get('telefono')}\n\n💬 O escribe *menu* para ver otros productos.", {'tipo': 'cotizacion_personalizada'}
                 
                 tipo_cot = cat.get('tipo_cotizacion', 'cantidad')
                 if tipo_cot == 'medida':
@@ -461,7 +462,7 @@ class MessageRouter:
                 else:
                     prompt = "¿Que cantidad necesita? (Ejemplo: 1000, 5000, 10000 unidades)"
                 
-                return f"[OK] {producto.get('nombre')}\n\n{self._frase_cortesia('excelente_eleccion')}\n\n{prompt}", {'tipo': 'producto_seleccionado'}
+                return f"✅ *{producto.get('nombre')}* seleccionado\n\n{self._frase_cortesia('excelente_eleccion')}\n\n{prompt}", {'tipo': 'producto_seleccionado'}
         except:
             pass
         
@@ -494,7 +495,7 @@ class MessageRouter:
                 
                 return self._generar_cotizacion(estado, area=ancho*alto), {'tipo': 'cotizacion'}
             else:
-                return f"Disculpe, necesito las medidas. {self._frase_cortesia('general')}\n\nEjemplo: 100x200 o 150x300 (en cm)", {'tipo': 'error'}
+                return f"📏 *Necesito las medidas*\n\n{self._frase_cortesia('general')}\n\n✏️ Ejemplo: *100x200* o *150x300* (en cm)\n\n💡 También puedes escribir *menu* para reiniciar.", {'tipo': 'error'}
         else:
             # Procesar cantidad numerica
             num = re.search(r'(\d+)', msg)
@@ -513,7 +514,7 @@ class MessageRouter:
                 
                 return self._generar_cotizacion(estado), {'tipo': 'cotizacion'}
             else:
-                return f"Disculpe, necesito la cantidad. {self._frase_cortesia('general')}\n\nEjemplo: 1000, 5000, 10000", {'tipo': 'error'}
+                return f"🔢 *Necesito la cantidad*\n\n{self._frase_cortesia('general')}\n\n✏️ Ejemplo: *1000*, *5000*, *10000* unidades\n\n💡 También puedes escribir *menu* para reiniciar.", {'tipo': 'error'}
     
     def _agregar_al_carrito(self, estado: dict, user_id: str, area: int = None) -> Tuple[str, dict]:
         """Agrega producto al carrito y retorna mensaje con opciones."""
@@ -570,7 +571,7 @@ class MessageRouter:
                 mensaje = self.carrito.ver_carrito(cliente_id, user_id)
                 return mensaje, {'tipo': 'ver_carrito'}
             else:
-                return "🛒 Carrito no disponible.", {'tipo': 'error'}
+                return "❌ *Carrito no disponible.*\n\nPor favor intenta más tarde o escribe *menu* para reiniciar. 🔄", {'tipo': 'error'}
         
         elif msg in ["3", "3️⃣", "finalizar", "pedido", "comprar", "finalizar pedido"]:
             # Finalizar pedido - mostrar resumen
@@ -592,7 +593,7 @@ class MessageRouter:
             return mensaje, {'tipo': 'carrito_cancelado'}
         
         else:
-            return "🛒 ¿Qué deseas hacer?\n1️⃣ Agregar OTRO producto\n2️⃣ VER carrito\n3️⃣ FINALIZAR pedido\n4️⃣ CANCELAR", {'tipo': 'carrito'}
+            return "🛒 *¿Qué deseas hacer?*\n\n1️⃣ Agregar *OTRO* producto\n2️⃣ *VER* carrito 🛒\n3️⃣ *FINALIZAR* pedido ✅\n4️⃣ *CANCELAR* todo ❌", {'tipo': 'carrito'}
     
     def _finalizar_pedido_carrito(self, user_id: str, cliente_id: str) -> Tuple[str, dict]:
         """Finaliza el pedido desde el carrito."""
@@ -702,16 +703,16 @@ class MessageRouter:
         # Tiempos especificos para Cajas
         if categoria_id == "cajas":
             if cantidad <= 2000:
-                return "5-10 dias habiles"
+                return "⏱️ *5-10 días hábiles*"
             elif cantidad <= 5000:
-                return "7-15 dias habiles"
+                return "⏱️ *7-15 días hábiles*"
             elif cantidad <= 8000:
-                return "10-20 dias habiles"
+                return "⏱️ *10-20 días hábiles*"
             else:
-                return "15-25 dias habiles (confirmaremos al revisar su pedido)"
+                return "⏱️ *15-25 días hábiles* (confirmaremos al revisar su pedido)"
         
         # Default para otras categorias
-        return self.config.get('tiempo_entrega_default', '2-5 dias habiles')
+        return "⏱️ *" + self.config.get('tiempo_entrega_default', '2-5 días hábiles') + "*"
     
     def _generar_cotizacion(self, estado: dict, area: int = None) -> str:
         """Genera texto de cotizacion con tiempo de entrega ajustado y descuento."""
@@ -817,7 +818,7 @@ Horario: {self.config.get('horario_atencion', {}).get('lunes_viernes', 'Consulta
             conn.close()
             
             if not pedidos:
-                return "📭 No tienes pedidos registrados.\n\nEscribe 'menu' para hacer tu primer pedido.", {'tipo': 'historial_vacio'}
+                return "📭 *No tienes pedidos registrados.*\n\n🛒 Escribe *menu* para hacer tu primer pedido.", {'tipo': 'historial_vacio'}
             
             mensaje = "📋 *TUS ÚLTIMOS PEDIDOS*\n\n"
             for p in pedidos:
@@ -839,7 +840,7 @@ Horario: {self.config.get('horario_atencion', {}).get('lunes_viernes', 'Consulta
             
         except Exception as e:
             print(f"[ERROR] Mostrando historial: {e}")
-            return "❌ Error al cargar tu historial. Intenta de nuevo.", {'tipo': 'error'}
+            return "❌ *Error al cargar tu historial.*\n\nPor favor intenta de nuevo o escribe *menu* para reiniciar. 🔄", {'tipo': 'error'}
 
 
 # Prueba
