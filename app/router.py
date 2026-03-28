@@ -184,10 +184,14 @@ class MessageRouter:
     
     # ========== PROCESAMIENTO DE MENSAJES ==========
     
+    # FASE 1: Activar observador de OpenClaw
+    FASE_OBSERVADOR = True
+    
     def procesar_mensaje(self, mensaje: str, user_id: str = "default", cliente_id: str = None) -> Tuple[str, dict]:
         """
         Procesa un mensaje y retorna respuesta + metadata.
         Carga estado desde BD, procesa, guarda estado y loguea conversacion.
+        FASE 1: OpenClaw observa sin interferir.
         """
         msg = mensaje.lower().strip()
         cliente_id = cliente_id or self.config.get('cliente_id', 'default')
@@ -199,7 +203,30 @@ class MessageRouter:
             # DEBUG: Log estado actual
             print(f"[DEBUG] Usuario: {user_id}, Paso: {estado.get('paso')}, Categoria: {estado.get('categoria')}, Mensaje: {mensaje[:30]}")
             
-            # Detectar intencion y procesar
+            # ============================================
+            # FASE 1: OPENCLAW OBSERVADOR
+            # ============================================
+            decision_ia = None
+            if self.FASE_OBSERVADOR:
+                try:
+                    from core.observador import observar_openclaw
+                    from core.logger import guardar_evento
+                    
+                    contexto = {
+                        "mensaje": msg,
+                        "user_id": user_id,
+                        "cliente_id": cliente_id,
+                        "paso": estado.get('paso'),
+                        "categoria": estado.get('categoria')
+                    }
+                    
+                    decision_ia = observar_openclaw(contexto)
+                    print(f"[OPENCLAW] Decisión IA: {decision_ia}")
+                    
+                except Exception as e:
+                    print(f"[OPENCLAW OBSERVADOR ERROR] {e}")
+            
+            # Detectar intencion y procesar (SISTEMA ACTUAL - NO SE TOCA)
             respuesta, metadata = self._procesar_intencion(msg, estado, cliente_id, user_id)
             
             # V2: Si está en modo humano, no responder
@@ -221,6 +248,27 @@ class MessageRouter:
             
             # Loguear conversacion
             self._loguear_conversacion(cliente_id, user_id, mensaje, respuesta, metadata.get('tipo', 'general'))
+            
+            # ============================================
+            # FASE 1: GUARDAR LOG DE DECISIONES
+            # ============================================
+            if self.FASE_OBSERVADOR and decision_ia:
+                try:
+                    from core.logger import guardar_evento
+                    
+                    guardar_evento({
+                        "usuario_id": user_id,
+                        "cliente_id": cliente_id,
+                        "mensaje": msg[:200],  # Limitar longitud
+                        "decision_reglas": metadata.get('tipo', 'desconocido'),
+                        "decision_ia": decision_ia,
+                        "decision_final": metadata.get('tipo', 'desconocido'),
+                        "paso_bot": estado.get('paso'),
+                        "categoria": estado.get('categoria')
+                    })
+                    
+                except Exception as e:
+                    print(f"[LOGGER ERROR] {e}")
             
             return respuesta, metadata
             
