@@ -140,7 +140,6 @@ class CarritoBot:
             f"• Entrega: {tiempo_entrega}",
             "",
             f"🛒 CARRITO ACTUAL ({len(items)} productos):",
-        ])
             f"💰 Total: ${total_carrito:,} COP",
             "",
             "¿Qué deseas hacer?",
