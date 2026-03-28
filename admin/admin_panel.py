@@ -2079,4 +2079,108 @@ async def panel_pagos_pendientes(cliente_id: str):
     except Exception as e:
         return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
 
+@router.get("/cliente-dashboard/{cliente_id}/pagos-pendientes/{comprobante_id}")
+async def ver_comprobante_detalle(cliente_id: str, comprobante_id: int):
+    """Ver detalle de un comprobante de pago"""
+    try:
+        sys.path.append(str(Path(__file__).parent.parent))
+        from database.database_saas import db_saas
+        
+        # Obtener comprobante
+        conn = db_saas._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT * FROM comprobantes_pago 
+            WHERE id = ? AND cliente_id = ?
+        ''', (comprobante_id, cliente_id))
+        comprobante = cursor.fetchone()
+        conn.close()
+        
+        if not comprobante:
+            return HTMLResponse(content="<h1>❌ No encontrado</h1>")
+        
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Verificar Pago - {comprobante['pedido_id']}</title>
+            <style>
+                body {{ font-family: Arial; margin: 0; background: #f7fafc; }}
+                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; }}
+                .container {{ padding: 30px; max-width: 800px; margin: 0 auto; }}
+                .card {{ background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 20px 0; }}
+                .info {{ margin: 10px 0; }}
+                .label {{ font-weight: bold; color: #718096; }}
+                .btn {{ padding: 15px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 5px; }}
+                .btn-success {{ background: #48bb78; color: white; }}
+                .btn-danger {{ background: #f56565; color: white; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>💳 Verificar Pago</h2>
+            </div>
+            <div class="container">
+                <div class="card">
+                    <h3>📋 Información del Pago</h3>
+                    <div class="info"><span class="label">Pedido:</span> {comprobante['pedido_id']}</div>
+                    <div class="info"><span class="label">Cliente:</span> {comprobante['user_id']}</div>
+                    <div class="info"><span class="label">Enviado:</span> {comprobante['fecha_envio'][:19]}</div>
+                    <div class="info"><span class="label">Estado:</span> ⏳ Pendiente</div>
+                </div>
+                
+                <div class="card">
+                    <h3>🖼️ Comprobante</h3>
+                    <p><em>Imagen del comprobante (URL):</em></p>
+                    <code>{comprobante['imagen_data'][:100]}...</code>
+                </div>
+                
+                <div class="card">
+                    <h3>✅ Verificación</h3>
+                    <form method="POST" action="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes/{comprobante_id}/verificar">
+                        <button type="submit" name="estado" value="verificado" class="btn btn-success">
+                            ✅ Aprobar Pago
+                        </button>
+                        <button type="submit" name="estado" value="rechazado" class="btn btn-danger">
+                            ❌ Rechazar
+                        </button>
+                    </form>
+                </div>
+                
+                <br>
+                <a href="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">← Volver a Pagos Pendientes</a>
+            </div>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
+
+@router.post("/cliente-dashboard/{cliente_id}/pagos-pendientes/{comprobante_id}/verificar")
+async def verificar_pago(cliente_id: str, comprobante_id: int, estado: str = Form(...)):
+    """Marca el pago como verificado o rechazado"""
+    try:
+        sys.path.append(str(Path(__file__).parent.parent))
+        from database.database_saas import db_saas
+        
+        # Actualizar estado
+        db_saas.verificar_comprobante(comprobante_id, "Admin", estado)
+        
+        mensaje = "✅ Pago aprobado" if estado == "verificado" else "❌ Pago rechazado"
+        
+        return HTMLResponse(content=f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Pago Verificado</title></head>
+        <body style="font-family: Arial; text-align: center; padding: 50px;">
+            <h1 style="color: #48bb78;">{mensaje}</h1>
+            <br>
+            <a href="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Volver a Pagos Pendientes</a>
+        </body>
+        </html>
+        """)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
+
 print("✅ Panel simple cargado")
