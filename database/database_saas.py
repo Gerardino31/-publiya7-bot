@@ -521,6 +521,7 @@ class DatabaseSaaS:
                     UNIQUE(cliente_id, user_id)
                 )
             ''')
+            conn.commit()
             
             cursor.execute('''
                 SELECT modo FROM usuario_modo 
@@ -553,6 +554,7 @@ class DatabaseSaaS:
                     UNIQUE(cliente_id, user_id)
                 )
             ''')
+            conn.commit()
             
             cursor.execute('''
                 INSERT OR REPLACE INTO usuario_modo 
