@@ -1407,6 +1407,7 @@ async def cliente_dashboard(cliente_id: str):
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h1>📊 Dashboard de Ventas</h1>
                 <div>
+                    <a href="/admin/cliente-dashboard/{cliente_id}/manual" style="background: #4299e1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;">📘 Descargar Manual</a>
                     <a href="/admin/cliente-dashboard/{cliente_id}/modo-humano" style="background: #ed8936; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;">👥 Modo Humano</a>
                     <a href="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes" style="background: #ecc94b; color: #744210; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;">💳 Pagos Pendientes</a>
                     <a href="/admin/cliente-dashboard/{cliente_id}/exportar" style="background: #38a169; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">📊 Exportar Mis Ventas</a>
@@ -2226,6 +2227,28 @@ Pronto comenzaremos con la producción. 🚀
         </body>
         </html>
         """)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
+
+@router.get("/cliente-dashboard/{cliente_id}/manual")
+async def descargar_manual(cliente_id: str):
+    """Descarga el manual de usuario en PDF/Markdown"""
+    try:
+        manual_path = Path(__file__).parent.parent / "docs" / "MANUAL_USUARIO.md"
+        
+        if not manual_path.exists():
+            return HTMLResponse(content="<h1>❌ Manual no encontrado</h1>")
+        
+        with open(manual_path, 'r', encoding='utf-8') as f:
+            contenido = f.read()
+        
+        return StreamingResponse(
+            io.BytesIO(contenido.encode('utf-8')),
+            media_type="text/markdown",
+            headers={
+                "Content-Disposition": f"attachment; filename=Manual_BotlyPro_{cliente_id}.md"
+            }
+        )
     except Exception as e:
         return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
 
