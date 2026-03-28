@@ -149,7 +149,7 @@ class CarritoBot:
             "4️⃣ CANCELAR carrito",
             "",
             "Escribe 1, 2, 3 o 4."
-        ]
+        ])
         
         return "\n".join(lineas)
     
