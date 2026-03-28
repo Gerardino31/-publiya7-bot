@@ -94,7 +94,8 @@ async def dashboard():
                         clientes.append({
                             'id': config.get('cliente_id'),
                             'nombre': config.get('nombre', 'Sin nombre'),
-                            'telefono': config.get('telefono', 'N/A')
+                            'telefono': config.get('telefono', 'N/A'),
+                            'estado': config.get('estado', 'activo')
                         })
             except:
                 pass
@@ -105,12 +106,21 @@ async def dashboard():
     # Generar filas de la tabla
     filas = ""
     for c in clientes:
+        estado_color = '#48bb78' if c['estado'] == 'activo' else '#a0aec0'
+        estado_texto = '🟢 Activo' if c['estado'] == 'activo' else '⚪ Inactivo'
+        toggle_texto = 'Desactivar' if c['estado'] == 'activo' else 'Activar'
+        toggle_color = '#ed8936' if c['estado'] == 'activo' else '#48bb78'
+        
         filas += f"""<tr>
             <td style="padding: 15px; border-bottom: 1px solid #e2e8f0;">{c['id']}</td>
             <td style="padding: 15px; border-bottom: 1px solid #e2e8f0;">{c['nombre']}</td>
             <td style="padding: 15px; border-bottom: 1px solid #e2e8f0;">{c['telefono']}</td>
             <td style="padding: 15px; border-bottom: 1px solid #e2e8f0;">
+                <span style="color: {estado_color}; font-weight: bold;">{estado_texto}</span>
+            </td>
+            <td style="padding: 15px; border-bottom: 1px solid #e2e8f0;">
                 <a href="/admin/cliente/{c['id']}" style="background: #667eea; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; margin-right: 5px;">Ver</a>
+                <a href="/admin/cliente/{c['id']}/toggle" style="background: {toggle_color}; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; margin-right: 5px;">{toggle_texto}</a>
                 <a href="/admin/cliente/{c['id']}/eliminar" style="background: #f56565; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;" onclick="return confirm('¿Eliminar este cliente?')">Eliminar</a>
             </td>
         </tr>"""
@@ -174,6 +184,7 @@ async def dashboard():
                     <th style="padding: 15px; text-align: left;">ID</th>
                     <th style="padding: 15px; text-align: left;">Nombre</th>
                     <th style="padding: 15px; text-align: left;">Teléfono</th>
+                    <th style="padding: 15px; text-align: left;">Estado</th>
                     <th style="padding: 15px; text-align: left;">Acción</th>
                 </tr>
                 {filas}
@@ -1640,5 +1651,34 @@ async def cambiar_password_cliente(
         """)
     except Exception as e:
         return HTMLResponse(content=f"<h1>❌ Error al cambiar contraseña</h1><p>{str(e)}</p><a href='/admin/cliente-dashboard/{cliente_id}'>Volver</a>")
+
+@router.get("/cliente/{cliente_id}/toggle")
+async def toggle_cliente_estado(cliente_id: str):
+    """Activa o desactiva un cliente"""
+    try:
+        # No permitir desactivar publiya7
+        if cliente_id == 'publiya7':
+            return HTMLResponse(content="<h1>❌ No se puede desactivar el cliente principal</h1><a href='/admin/dashboard'>Volver</a>")
+        
+        # Cargar configuración
+        config_path = Path(f"clientes/configs/{cliente_id}.json")
+        if not config_path.exists():
+            return HTMLResponse(content="<h1>❌ Cliente no encontrado</h1><a href='/admin/dashboard'>Volver</a>")
+        
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        
+        # Cambiar estado
+        estado_actual = config.get('estado', 'activo')
+        nuevo_estado = 'inactivo' if estado_actual == 'activo' else 'activo'
+        config['estado'] = nuevo_estado
+        
+        # Guardar
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        
+        return RedirectResponse(url="/admin/dashboard", status_code=302)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>❌ Error al cambiar estado</h1><p>{str(e)}</p><a href='/admin/dashboard'>Volver</a>")
 
 print("✅ Panel simple cargado")
