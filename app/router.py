@@ -9,9 +9,9 @@ from datetime import datetime
 from typing import Dict, Tuple, Optional
 import pytz
 
-# Importar base de datos
+# Importar base de datos SaaS (unificada)
 try:
-    from database import db
+    from database.database_saas import db_saas as db
 except ImportError:
     db = None
 

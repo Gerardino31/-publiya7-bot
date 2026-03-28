@@ -5,6 +5,7 @@ Gestiona carritos, pedidos y productos multi-cliente
 
 import sqlite3
 import json
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict, List, Any
@@ -302,6 +303,144 @@ class DatabaseSaaS:
         conn.close()
         
         return productos
+    
+    # ============================================
+    # ESTADO DE CONVERSACIÓN (migrado desde db.py)
+    # ============================================
+    
+    def guardar_estado(self, cliente_id: str, user_id: str, estado: Dict) -> bool:
+        """Guarda el estado de una conversación"""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            # Crear tabla si no existe
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS estado_conversacion (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cliente_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    paso INTEGER DEFAULT 0,
+                    categoria TEXT,
+                    producto INTEGER,
+                    cantidad TEXT,
+                    total INTEGER DEFAULT 0,
+                    datos_extra TEXT,
+                    actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(cliente_id, user_id)
+                )
+            ''')
+            
+            # Convertir datos extra a JSON
+            datos_extra = json.dumps(estado.get('datos_extra', {}))
+            cantidad = estado.get('cantidad')
+            if cantidad is not None:
+                cantidad = str(cantidad)
+            
+            cursor.execute('''
+                INSERT OR REPLACE INTO estado_conversacion 
+                (cliente_id, user_id, paso, categoria, producto, cantidad, total, datos_extra, actualizado_en)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                cliente_id,
+                user_id,
+                estado.get('paso', 0),
+                estado.get('categoria'),
+                estado.get('producto'),
+                cantidad,
+                estado.get('total', 0),
+                datos_extra,
+                datetime.now()
+            ))
+            
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"[ERROR] guardar_estado: {e}")
+            return False
+    
+    def obtener_estado(self, cliente_id: str, user_id: str) -> Optional[Dict]:
+        """Obtiene el estado de una conversación"""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT * FROM estado_conversacion 
+                WHERE cliente_id = ? AND user_id = ?
+            ''', (cliente_id, user_id))
+            
+            row = cursor.fetchone()
+            conn.close()
+            
+            if row:
+                estado = dict(row)
+                # Parsear cantidad
+                try:
+                    estado['cantidad'] = int(estado['cantidad'])
+                except (ValueError, TypeError):
+                    pass
+                # Parsear datos extra
+                if estado.get('datos_extra'):
+                    try:
+                        estado['datos_extra'] = json.loads(estado['datos_extra'])
+                    except:
+                        estado['datos_extra'] = {}
+                return estado
+            return None
+        except Exception as e:
+            print(f"[ERROR] obtener_estado: {e}")
+            return None
+    
+    def limpiar_estado(self, cliente_id: str, user_id: str) -> bool:
+        """Limpia el estado de una conversación"""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                DELETE FROM estado_conversacion 
+                WHERE cliente_id = ? AND user_id = ?
+            ''', (cliente_id, user_id))
+            
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"[ERROR] limpiar_estado: {e}")
+            return False
+    
+    def guardar_conversacion(self, cliente_id: str, user_id: str, mensaje: str, respuesta: str, tipo: str) -> bool:
+        """Guarda un mensaje de conversación para auditoría"""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            # Crear tabla si no existe
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS conversaciones (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cliente_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    mensaje TEXT,
+                    respuesta TEXT,
+                    tipo TEXT,
+                    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            cursor.execute('''
+                INSERT INTO conversaciones (cliente_id, user_id, mensaje, respuesta, tipo)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (cliente_id, user_id, mensaje, respuesta, tipo))
+            
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"[ERROR] guardar_conversacion: {e}")
+            return False
 
 # Instancia global
 db_saas = DatabaseSaaS()
