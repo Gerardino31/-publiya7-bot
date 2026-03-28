@@ -1846,7 +1846,7 @@ async def panel_modo_humano(cliente_id: str):
             FROM usuario_modo 
             WHERE cliente_id = ? AND modo = 'humano'
             ORDER BY fecha_cambio DESC
-        """)
+        """, (cliente_id,))
         usuarios = cursor.fetchall()
         conn.close()
         
