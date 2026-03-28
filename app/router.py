@@ -127,6 +127,7 @@ class MessageRouter:
         
         menu += "\n\n🎯 *Escribe el número* de la categoría que necesites"
         menu += "\n💡 También puedes escribir el *nombre* directamente"
+        menu += "\n👥 Escribe *ASESOR* para hablar con una persona"
         menu += "\n🏠 Escribe *menu* en cualquier momento para volver aquí"
         return menu
     
@@ -238,8 +239,16 @@ class MessageRouter:
         try:
             modo = db.obtener_modo_usuario(cliente_id, user_id) if db else 'bot'
             if modo == 'humano':
+                # Si escribe "bot", "menu" o "terminar", reactivar
+                if msg in ['bot', 'menu', 'terminar', 'finalizar', 'listo', 'gracias']:
+                    db.set_modo_usuario(cliente_id, user_id, 'bot', 'usuario')
+                    return """✅ El asesor ha finalizado la atención.
+
+🤖 El bot está activo nuevamente.
+
+Escribe *menu* para continuar.""", {'tipo': 'reactivar_bot'}
+                
                 # El bot no responde, el asesor maneja la conversación
-                # Solo guardamos el mensaje para que el asesor lo vea
                 print(f"[MODO HUMANO] Mensaje de {user_id}: {msg}")
                 return None, {'tipo': 'modo_humano', 'silencio': True}
         except Exception as e:
