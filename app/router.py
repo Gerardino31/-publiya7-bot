@@ -472,10 +472,10 @@ class MessageRouter:
         
         if tipo_cot == 'medida':
             # Procesar medidas (ej: 100x200)
-            medidas = re.search(r'(\d+)\s*x\s*(\d+)', msg)
+            medidas = re.search(r'(\d+\.?\d*)\s*x\s*(\d+\.?\d*)', msg)
             if medidas:
-                ancho = int(medidas.group(1))
-                alto = int(medidas.group(2))
+                ancho = float(medidas.group(1))
+                alto = float(medidas.group(2))
                 estado['cantidad'] = f"{ancho}x{alto}cm"
                 estado['total'] = self._calcular_precio(estado, ancho * alto)
                 estado['paso'] = 3
