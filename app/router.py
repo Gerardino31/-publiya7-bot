@@ -247,6 +247,10 @@ class MessageRouter:
         if any(x in msg for x in ["contacto", "telefono", "whatsapp", "email"]):
             return self._generar_info_contacto(), {'tipo': 'contacto'}
         
+        # Historial de pedidos
+        if any(x in msg for x in ["mis pedidos", "historial", "pedidos anteriores", "ver pedidos"]):
+            return self._mostrar_historial_pedidos(user_id, cliente_id)
+        
         # PASO 0: Seleccionar categoria
         if estado['paso'] == 0:
             return self._procesar_categoria(msg, estado)
@@ -794,6 +798,48 @@ Ubicacion: {self.config.get('ciudad')}, {self.config.get('departamento')}
 Horario: {self.config.get('horario_atencion', {}).get('lunes_viernes', 'Consultar')}
 
 {self._frase_cortesia('agradecimiento')}"""
+    
+    def _mostrar_historial_pedidos(self, user_id: str, cliente_id: str) -> Tuple[str, dict]:
+        """Muestra el historial de pedidos del usuario."""
+        try:
+            from database.database_saas import db_saas
+            conn = db_saas._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT numero_orden, total, estado, creado_en 
+                FROM pedidos 
+                WHERE cliente_id = ? AND usuario_id = ?
+                ORDER BY creado_en DESC LIMIT 5
+            """, (cliente_id, user_id))
+            
+            pedidos = cursor.fetchall()
+            conn.close()
+            
+            if not pedidos:
+                return "📭 No tienes pedidos registrados.\n\nEscribe 'menu' para hacer tu primer pedido.", {'tipo': 'historial_vacio'}
+            
+            mensaje = "📋 *TUS ÚLTIMOS PEDIDOS*\n\n"
+            for p in pedidos:
+                estado_icono = {
+                    'confirmado': '✅',
+                    'pendiente': '⏳',
+                    'procesando': '⚙️',
+                    'completado': '📦',
+                    'cancelado': '❌'
+                }.get(p['estado'], '❓')
+                
+                mensaje += f"{estado_icono} *{p['numero_orden']}*\n"
+                mensaje += f"   💰 ${p['total']:,} COP\n"
+                mensaje += f"   📅 {p['creado_en'][:10]}\n"
+                mensaje += f"   🏷️ {p['estado'].upper()}\n\n"
+            
+            mensaje += "¿Quieres hacer un nuevo pedido? Escribe 'menu'."
+            return mensaje, {'tipo': 'historial'}
+            
+        except Exception as e:
+            print(f"[ERROR] Mostrando historial: {e}")
+            return "❌ Error al cargar tu historial. Intenta de nuevo.", {'tipo': 'error'}
 
 
 # Prueba
