@@ -627,6 +627,88 @@ class DatabaseSaaS:
         except Exception as e:
             print(f"[ERROR] obtener_mensajes_pendientes_asesor: {e}")
             return []
+    
+    # ============================================
+    # VERIFICACIÓN DE PAGOS (v2)
+    # ============================================
+    
+    def guardar_comprobante_pago(self, cliente_id: str, user_id: str, pedido_id: str, 
+                                  imagen_data: bytes, content_type: str) -> int:
+        """Guarda comprobante de pago enviado por cliente"""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            # Crear tabla
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS comprobantes_pago (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cliente_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    pedido_id TEXT NOT NULL,
+                    imagen_data BLOB,
+                    content_type TEXT,
+                    estado TEXT DEFAULT 'pendiente',
+                    verificado_por TEXT,
+                    fecha_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    fecha_verificacion TIMESTAMP
+                )
+            ''')
+            
+            cursor.execute('''
+                INSERT INTO comprobantes_pago 
+                (cliente_id, user_id, pedido_id, imagen_data, content_type)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (cliente_id, user_id, pedido_id, imagen_data, content_type))
+            
+            comprobante_id = cursor.lastrowid
+            conn.commit()
+            conn.close()
+            
+            print(f"✅ Comprobante guardado: ID {comprobante_id}")
+            return comprobante_id
+        except Exception as e:
+            print(f"[ERROR] guardar_comprobante_pago: {e}")
+            return 0
+    
+    def obtener_comprobantes_pendientes(self, cliente_id: str) -> List[Dict]:
+        """Obtiene comprobantes pendientes de verificación"""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT * FROM comprobantes_pago 
+                WHERE cliente_id = ? AND estado = 'pendiente'
+                ORDER BY fecha_envio DESC
+            ''', (cliente_id,))
+            
+            comprobantes = [dict(row) for row in cursor.fetchall()]
+            conn.close()
+            return comprobantes
+        except Exception as e:
+            print(f"[ERROR] obtener_comprobantes_pendientes: {e}")
+            return []
+    
+    def verificar_comprobante(self, comprobante_id: int, admin: str, 
+                              estado: str = 'verificado') -> bool:
+        """Marca comprobante como verificado"""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                UPDATE comprobantes_pago 
+                SET estado = ?, verificado_por = ?, fecha_verificacion = ?
+                WHERE id = ?
+            ''', (estado, admin, datetime.now(), comprobante_id))
+            
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"[ERROR] verificar_comprobante: {e}")
+            return False
 
 # Instancia global
 db_saas = DatabaseSaaS()

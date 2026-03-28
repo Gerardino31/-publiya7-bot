@@ -1408,6 +1408,7 @@ async def cliente_dashboard(cliente_id: str):
                 <h1>📊 Dashboard de Ventas</h1>
                 <div>
                     <a href="/admin/cliente-dashboard/{cliente_id}/modo-humano" style="background: #ed8936; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;">👥 Modo Humano</a>
+                    <a href="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes" style="background: #ecc94b; color: #744210; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;">💳 Pagos Pendientes</a>
                     <a href="/admin/cliente-dashboard/{cliente_id}/exportar" style="background: #38a169; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">📊 Exportar Mis Ventas</a>
                 </div>
             </div>
@@ -1997,10 +1998,84 @@ async def reactivar_bot(cliente_id: str, user_id: str):
             <h1 style="color: #48bb78;">🤖 Bot Reactivado</h1>
             <p>El usuario {user_id} volverá a interactuar con el bot.</p>
             <br>
-            <a href="/admin/modo-humano/{cliente_id}" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Volver a Modo Humano</a>
+            <a href="/admin/cliente-dashboard/{cliente_id}/modo-humano" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Volver a Modo Humano</a>
         </body>
         </html>
         """)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
+
+# ============================================
+# V2: VERIFICACIÓN DE PAGOS - PANEL CLIENTE
+# ============================================
+
+@router.get("/cliente-dashboard/{cliente_id}/pagos-pendientes")
+async def panel_pagos_pendientes(cliente_id: str):
+    """Panel para ver comprobantes de pago pendientes de verificación"""
+    try:
+        sys.path.append(str(Path(__file__).parent.parent))
+        from database.database_saas import db_saas
+        
+        # Obtener comprobantes pendientes
+        comprobantes = db_saas.obtener_comprobantes_pendientes(cliente_id)
+        
+        # Generar HTML
+        filas = ""
+        for c in comprobantes:
+            filas += f"""
+            <tr>
+                <td>{c['pedido_id']}</td>
+                <td>{c['user_id']}</td>
+                <td>{c['fecha_envio'][:19]}</td>
+                <td><span style="color: #ecc94b; font-weight: bold;">⏳ Pendiente</span></td>
+                <td>
+                    <a href="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes/{c['id']}" 
+                       style="background: #48bb78; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">
+                       ✅ Verificar
+                    </a>
+                </td>
+            </tr>
+            """
+        
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Pagos Pendientes - {cliente_id}</title>
+            <style>
+                body {{ font-family: Arial; margin: 0; background: #f7fafc; }}
+                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; }}
+                .container {{ padding: 30px; max-width: 1200px; margin: 0 auto; }}
+                table {{ width: 100%; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                th {{ background: #48bb78; color: white; padding: 15px; text-align: left; }}
+                td {{ padding: 15px; border-bottom: 1px solid #e2e8f0; }}
+                .badge {{ background: #ecc94b; color: #744210; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>💳 Verificación de Pagos</h2>
+            </div>
+            <div class="container">
+                <h1>⏳ Pagos Pendientes de Verificación</h1>
+                <p>Comprobantes enviados por clientes:</p>
+                <table>
+                    <tr>
+                        <th>Pedido</th>
+                        <th>Cliente</th>
+                        <th>Enviado</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
+                    </tr>
+                    {filas if filas else '<tr><td colspan="5" style="text-align: center;">No hay pagos pendientes</td></tr>'}
+                </table>
+                <br>
+                <a href="/admin/cliente-dashboard/{cliente_id}" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">← Volver al Dashboard</a>
+            </div>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html)
     except Exception as e:
         return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
 

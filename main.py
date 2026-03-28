@@ -49,9 +49,12 @@ async def health_check():
 @app.post("/webhook")
 async def receive_webhook(
     From: str = Form(...),
-    Body: str = Form(...),
+    Body: str = Form(default=""),
     To: str = Form(...),
-    MessageSid: str = Form(...)
+    MessageSid: str = Form(...),
+    NumMedia: str = Form(default="0"),
+    MediaUrl0: str = Form(default=None),
+    MediaContentType0: str = Form(default=None)
 ):
     """
     Recibe mensajes de WhatsApp desde Twilio.
@@ -60,11 +63,35 @@ async def receive_webhook(
         # Importar aquí para evitar errores durante el arranque
         sys.path.append(os.path.dirname(os.path.abspath(__file__)))
         from app.bot_autodetect import bot_autodetect
-        
-        logger.info(f"Mensaje recibido de {From}: {Body}")
+        from database.database_saas import db_saas
         
         # Extraer número del remitente (quitar 'whatsapp:')
         from_number = From.replace('whatsapp:', '')
+        
+        # ============================================
+        # V2: DETECTAR IMAGEN (Comprobante de pago)
+        # ============================================
+        if NumMedia != "0" and MediaUrl0:
+            logger.info(f"📸 Imagen recibida de {from_number}: {MediaUrl0}")
+            
+            # Buscar pedido reciente pendiente de pago
+            # Por ahora guardamos la imagen y notificamos
+            # TODO: Implementar descarga y guardado de imagen
+            
+            respuesta_texto = "✅ Comprobante recibido.\n\n⏳ Verificando pago...\n\nTe notificaremos cuando sea confirmado."
+            
+            # Twilio espera una respuesta en formato TwiML
+            twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Message>{respuesta_texto}</Message>
+</Response>"""
+            
+            return PlainTextResponse(content=twiml_response, media_type="application/xml")
+        
+        # ============================================
+        # MENSAJE DE TEXTO NORMAL
+        # ============================================
+        logger.info(f"Mensaje recibido de {From}: {Body}")
         
         # Procesar mensaje con el bot
         respuesta = bot_autodetect.procesar_mensaje(
