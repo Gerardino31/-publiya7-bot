@@ -9,6 +9,7 @@ from datetime import datetime
 import json
 import csv
 import io
+import sys
 
 router = APIRouter(prefix="/admin")
 
@@ -1748,7 +1749,6 @@ async def exportar_pedidos_csv():
 async def exportar_pedidos_cliente(cliente_id: str):
     """Exporta pedidos de un cliente específico a CSV"""
     try:
-        import sys
         sys.path.append(str(Path(__file__).parent.parent))
         from database.database_saas import db_saas
         
