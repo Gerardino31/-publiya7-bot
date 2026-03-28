@@ -96,6 +96,19 @@ async def receive_webhook(
         
         return PlainTextResponse(content=error_response, media_type="application/xml")
 
+@app.get("/recordatorios")
+async def ejecutar_recordatorios():
+    """Endpoint para ejecutar recordatorios (llamado por cron-job.org)"""
+    try:
+        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+        from app.recordatorios import enviar_recordatorios
+        
+        enviar_recordatorios()
+        return {"status": "ok", "message": "Recordatorios procesados"}
+    except Exception as e:
+        logger.error(f"Error en recordatorios: {e}")
+        return {"status": "error", "message": str(e)}
+
 @app.get("/info")
 async def get_info():
     """Obtiene información del sistema."""
