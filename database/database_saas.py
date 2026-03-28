@@ -356,6 +356,14 @@ class DatabaseSaaS:
             conn.commit()
             conn.close()
             return True
+        except sqlite3.OperationalError as e:
+            if "database is locked" in str(e):
+                print(f"[WARNING] Base de datos bloqueada, reintentando...")
+                import time
+                time.sleep(0.1)
+                return self.guardar_estado(cliente_id, user_id, estado)
+            print(f"[ERROR] guardar_estado: {e}")
+            return False
         except Exception as e:
             print(f"[ERROR] guardar_estado: {e}")
             return False
@@ -417,25 +425,18 @@ class DatabaseSaaS:
             conn = self._get_connection()
             cursor = conn.cursor()
             
-            # Crear tabla si no existe
+            # Crear tabla si no existe (sin NOT NULL en user_id)
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS conversaciones (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    cliente_id TEXT NOT NULL,
-                    user_id TEXT NOT NULL,
+                    cliente_id TEXT,
+                    user_id TEXT,
                     mensaje TEXT,
                     respuesta TEXT,
                     tipo TEXT,
                     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
-            
-            # Verificar si la columna user_id existe, si no, agregarla
-            cursor.execute("PRAGMA table_info(conversaciones)")
-            columnas = [col[1] for col in cursor.fetchall()]
-            if 'user_id' not in columnas:
-                cursor.execute('ALTER TABLE conversaciones ADD COLUMN user_id TEXT')
-                conn.commit()
             
             cursor.execute('''
                 INSERT INTO conversaciones (cliente_id, user_id, mensaje, respuesta, tipo)
@@ -445,6 +446,14 @@ class DatabaseSaaS:
             conn.commit()
             conn.close()
             return True
+        except sqlite3.OperationalError as e:
+            if "database is locked" in str(e):
+                print(f"[WARNING] Base de datos bloqueada, reintentando...")
+                import time
+                time.sleep(0.1)
+                return self.guardar_conversacion(cliente_id, user_id, mensaje, respuesta, tipo)
+            print(f"[ERROR] guardar_conversacion: {e}")
+            return False
         except Exception as e:
             print(f"[ERROR] guardar_conversacion: {e}")
             return False
