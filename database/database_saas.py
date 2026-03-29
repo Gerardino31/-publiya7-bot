@@ -39,7 +39,22 @@ class DatabaseSaaS:
             
             conn = self._get_connection()
             cursor = conn.cursor()
-            cursor.executescript(schema)
+            
+            # Ejecutar schema línea por línea para manejar errores específicos
+            for statement in schema.split(';'):
+                statement = statement.strip()
+                if statement and not statement.startswith('--'):
+                    try:
+                        cursor.execute(statement)
+                    except sqlite3.OperationalError as e:
+                        if "already exists" in str(e).lower():
+                            # Ignorar si tabla/índice ya existe
+                            pass
+                        else:
+                            print(f"[DB WARNING] {e}")
+                    except Exception as e:
+                        print(f"[DB ERROR] {e}")
+            
             conn.commit()
             conn.close()
             print("✅ Base de datos SaaS inicializada")

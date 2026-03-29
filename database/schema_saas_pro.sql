@@ -383,20 +383,20 @@ CREATE TABLE IF NOT EXISTS comprobantes_pago (
 -- ============================================
 -- ÍNDICES para optimización
 -- ============================================
-CREATE INDEX idx_clientes_estado ON clientes(estado);
-CREATE INDEX idx_clientes_plan ON clientes(plan);
-CREATE INDEX idx_productos_cliente ON productos(cliente_id, activo);
-CREATE INDEX idx_productos_categoria ON productos(cliente_id, categoria_id);
-CREATE INDEX idx_carritos_estado ON carritos(estado);
-CREATE INDEX idx_carritos_expira ON carritos(expira_en);
-CREATE INDEX idx_pedidos_cliente ON pedidos(cliente_id, estado);
-CREATE INDEX idx_pedidos_fecha ON pedidos(creado_en);
-CREATE INDEX idx_pedidos_estado ON pedidos(estado);
-CREATE INDEX idx_conversaciones_cliente ON conversaciones(cliente_id, usuario_id);
-CREATE INDEX idx_conversaciones_fecha ON conversaciones(timestamp);
-CREATE INDEX idx_notificaciones_cliente ON notificaciones(cliente_id, leida);
-CREATE INDEX idx_comprobantes_estado ON comprobantes_pago(cliente_id, estado);
-CREATE INDEX idx_comprobantes_pedido ON comprobantes_pago(pedido_id);
+CREATE INDEX IF NOT EXISTS idx_clientes_estado ON clientes(estado);
+CREATE INDEX IF NOT EXISTS idx_clientes_plan ON clientes(plan);
+CREATE INDEX IF NOT EXISTS idx_productos_cliente ON productos(cliente_id, activo);
+CREATE INDEX IF NOT EXISTS idx_productos_categoria ON productos(cliente_id, categoria_id);
+CREATE INDEX IF NOT EXISTS idx_carritos_estado ON carritos(estado);
+CREATE INDEX IF NOT EXISTS idx_carritos_expira ON carritos(expira_en);
+CREATE INDEX IF NOT EXISTS idx_pedidos_cliente ON pedidos(cliente_id, estado);
+CREATE INDEX IF NOT EXISTS idx_pedidos_fecha ON pedidos(creado_en);
+CREATE INDEX IF NOT EXISTS idx_pedidos_estado ON pedidos(estado);
+CREATE INDEX IF NOT EXISTS idx_conversaciones_cliente ON conversaciones(cliente_id, usuario_id);
+CREATE INDEX IF NOT EXISTS idx_conversaciones_fecha ON conversaciones(timestamp);
+CREATE INDEX IF NOT EXISTS idx_notificaciones_cliente ON notificaciones(cliente_id, leida);
+CREATE INDEX IF NOT EXISTS idx_comprobantes_estado ON comprobantes_pago(cliente_id, estado);
+CREATE INDEX IF NOT EXISTS idx_comprobantes_pedido ON comprobantes_pago(pedido_id);
 
 -- ============================================
 -- DATOS INICIALES
