@@ -2240,15 +2240,26 @@ async def verificar_pago(cliente_id: str, comprobante_id: int, estado: str = For
         db_saas.verificar_comprobante(comprobante_id, "Admin", estado)
         
         # Enviar notificación WhatsApp si está aprobado
+        notificacion_enviada = False
+        error_notificacion = None
+        
         if estado == "verificado":
             try:
                 from twilio.rest import Client
                 
-                account_sid = os.getenv('TWILIO_ACCOUNT_SID')
-                auth_token = os.getenv('TWILIO_AUTH_TOKEN')
-                from_whatsapp = os.getenv('TWILIO_WHATSAPP_NUMBER', 'whatsapp:+14155238886')
+                # Obtener credenciales de Twilio
+                account_sid = os.environ.get('TWILIO_ACCOUNT_SID', '').strip()
+                auth_token = os.environ.get('TWILIO_AUTH_TOKEN', '').strip()
+                from_whatsapp = os.environ.get('TWILIO_WHATSAPP_NUMBER', 'whatsapp:+14155238886')
                 
-                if account_sid and auth_token:
+                print(f"[DEBUG] TWILIO_ACCOUNT_SID: {'Configurado' if account_sid else 'NO CONFIGURADO'}")
+                print(f"[DEBUG] TWILIO_AUTH_TOKEN: {'Configurado' if auth_token else 'NO CONFIGURADO'}")
+                print(f"[DEBUG] TWILIO_WHATSAPP_NUMBER: {from_whatsapp}")
+                
+                if not account_sid or not auth_token:
+                    error_notificacion = "Credenciales de Twilio no configuradas en variables de entorno"
+                    print(f"⚠️ {error_notificacion}")
+                else:
                     client = Client(account_sid, auth_token)
                     mensaje_whatsapp = f"""✅ ¡Pago aprobado!
 
@@ -2258,23 +2269,39 @@ Pronto comenzaremos con la producción. 🚀
 
 ¿Tienes alguna pregunta? Escribe *ASESOR* para hablar con nosotros."""
                     
+                    # Formato correcto del número de destino
+                    to_number = user_id if user_id.startswith('whatsapp:') else f'whatsapp:{user_id}'
+                    
                     message = client.messages.create(
                         from_=from_whatsapp,
                         body=mensaje_whatsapp,
-                        to=f'whatsapp:{user_id}'
+                        to=to_number
                     )
-                    print(f"✅ Notificación enviada a {user_id}: {message.sid}")
+                    notificacion_enviada = True
+                    print(f"✅ Notificación enviada a {to_number}: {message.sid}")
+                    
             except Exception as e:
+                error_notificacion = str(e)
                 print(f"⚠️ Error enviando notificación WhatsApp: {e}")
         
-        mensaje = "✅ Pago aprobado y cliente notificado" if estado == "verificado" else "❌ Pago rechazado"
+        # Construir mensaje de respuesta
+        if estado == "verificado":
+            if notificacion_enviada:
+                mensaje = "✅ Pago aprobado y cliente notificado por WhatsApp"
+                color = "#48bb78"
+            else:
+                mensaje = f"✅ Pago aprobado (notificación WhatsApp fallida: {error_notificacion or 'Error desconocido'})"
+                color = "#ed8936"
+        else:
+            mensaje = "❌ Pago rechazado"
+            color = "#f56565"
         
         return HTMLResponse(content=f"""
         <!DOCTYPE html>
         <html>
         <head><title>Pago Verificado</title></head>
         <body style="font-family: Arial; text-align: center; padding: 50px;">
-            <h1 style="color: #48bb78;">{mensaje}</h1>
+            <h1 style="color: {color};">{mensaje}</h1>
             <br>
             <a href="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Volver a Pagos Pendientes</a>
         </body>
