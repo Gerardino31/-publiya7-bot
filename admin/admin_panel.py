@@ -148,12 +148,13 @@ async def dashboard():
             <h2>🤖 BotlyPro</h2>
         </div>
         <div style="padding: 30px; max-width: 1200px; margin: 0 auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                 <h1>Dashboard</h1>
-                <div>
-                    <a href="/admin/pedidos" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;">📦 Ver Pedidos</a>
-                    <a href="/admin/exportar-pedidos" style="background: #38a169; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;">📊 Exportar Excel</a>
-                    <a href="/admin/nuevo-cliente" style="background: #48bb78; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">➕ Nuevo Cliente</a>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="/admin/analytics/" style="background: #9f7aea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px;">🤖 Analytics IA</a>
+                    <a href="/admin/pedidos" style="background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px;">📦 Pedidos</a>
+                    <a href="/admin/exportar-pedidos" style="background: #38a169; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px;">📊 Exportar</a>
+                    <a href="/admin/nuevo-cliente" style="background: #48bb78; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px;">➕ Nuevo Cliente</a>
                 </div>
             </div>
             
