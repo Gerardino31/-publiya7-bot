@@ -15,16 +15,11 @@ class DatabaseSaaS:
     
     def __init__(self, db_path: str = None):
         import os
-        # Usar ruta del disk si existe, sino default local
+        # Usar ruta del disk (siempre /data en Render)
         if db_path is None:
             disk_path = os.environ.get('DISK_PATH', '/data')
-            # Verificar si el disk está disponible
-            if os.path.exists(disk_path) and os.access(disk_path, os.W_OK):
-                self.db_path = os.path.join(disk_path, "botlypro_saas.db")
-            else:
-                # Fallback a directorio local si no hay acceso
-                self.db_path = "botlypro_saas.db"
-                print(f"[WARNING] Disk no disponible, usando base de datos local: {self.db_path}")
+            self.db_path = os.path.join(disk_path, "botlypro_saas.db")
+            print(f"[INFO] Usando base de datos en: {self.db_path}")
         else:
             self.db_path = db_path
         self.init_database()
