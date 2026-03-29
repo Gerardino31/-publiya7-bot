@@ -354,6 +354,33 @@ CREATE TABLE notificaciones (
 );
 
 -- ============================================
+-- 11. TABLA: comprobantes_pago
+-- Comprobantes de pago enviados por clientes
+-- ============================================
+CREATE TABLE IF NOT EXISTS comprobantes_pago (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cliente_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    pedido_id INTEGER NOT NULL,
+    
+    -- Datos de la imagen
+    imagen_data BLOB,                     -- URL o datos de la imagen
+    content_type TEXT,                    -- image/jpeg, image/png, etc
+    
+    -- Estado de verificación
+    estado TEXT DEFAULT 'pendiente',      -- pendiente, verificado, rechazado
+    verificado_por TEXT,                  -- Quién verificó (admin, asesor)
+    notas_verificacion TEXT,              -- Notas sobre la verificación
+    
+    -- Timestamps
+    fecha_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_verificacion TIMESTAMP,
+    
+    FOREIGN KEY (cliente_id) REFERENCES clientes(cliente_id),
+    FOREIGN KEY (pedido_id) REFERENCES pedidos(id)
+);
+
+-- ============================================
 -- ÍNDICES para optimización
 -- ============================================
 CREATE INDEX idx_clientes_estado ON clientes(estado);
@@ -368,6 +395,8 @@ CREATE INDEX idx_pedidos_estado ON pedidos(estado);
 CREATE INDEX idx_conversaciones_cliente ON conversaciones(cliente_id, usuario_id);
 CREATE INDEX idx_conversaciones_fecha ON conversaciones(timestamp);
 CREATE INDEX idx_notificaciones_cliente ON notificaciones(cliente_id, leida);
+CREATE INDEX idx_comprobantes_estado ON comprobantes_pago(cliente_id, estado);
+CREATE INDEX idx_comprobantes_pedido ON comprobantes_pago(pedido_id);
 
 -- ============================================
 -- DATOS INICIALES
