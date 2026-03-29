@@ -17,7 +17,7 @@ class DatabaseSaaS:
         import os
         # Usar ruta del disk si existe, sino default local
         if db_path is None:
-            disk_path = os.environ.get('DISK_PATH', '/var/data')
+            disk_path = os.environ.get('DISK_PATH', '/data')
             # Verificar si el disk está disponible
             if os.path.exists(disk_path) and os.access(disk_path, os.W_OK):
                 self.db_path = os.path.join(disk_path, "botlypro_saas.db")

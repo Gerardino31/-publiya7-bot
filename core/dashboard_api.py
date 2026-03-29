@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 # Usar ruta del disk si existe y es escribible, sino default local
-disk_path = os.environ.get('DISK_PATH', '/var/data')
+disk_path = os.environ.get('DISK_PATH', '/data')
 if os.path.exists(disk_path) and os.access(disk_path, os.W_OK):
     DB_PATH = Path(disk_path) / "botlypro_logs.db"
 else:
