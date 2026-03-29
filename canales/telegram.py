@@ -100,6 +100,7 @@ async def webhook_telegram(request: Request):
         print(f"[Telegram] Mensaje de {usuario_id}: {texto[:50]}")
         
         # Si es imagen, guardar en base de datos como comprobante
+        comprobante_guardado = False
         if es_imagen and imagen_file_id:
             try:
                 sys.path.append(str(Path(__file__).parent.parent))
@@ -129,14 +130,25 @@ async def webhook_telegram(request: Request):
                         content_type='image/jpeg'
                     )
                     print(f"[Telegram] Comprobante guardado para pedido {pedido_id}")
-                    texto = f"[COMPROBANTE_PAGO:{pedido_id}]"
+                    comprobante_guardado = True
+                    
+                    # Responder directamente sin pasar por el router
+                    respuesta = f"✅ ¡Comprobante recibido!\n\nTu pedido *{pedido_id}* está en revisión.\n\nTe notificaremos cuando sea aprobado."
+                    enviar_mensaje_telegram(chat_id, respuesta)
+                    return JSONResponse({"status": "ok"})
                 else:
                     print(f"[Telegram] No hay pedido pendiente para guardar comprobante")
+                    respuesta = "⚠️ No tienes pedidos pendientes de pago.\n\nHaz un pedido primero para poder enviar comprobante."
+                    enviar_mensaje_telegram(chat_id, respuesta)
+                    return JSONResponse({"status": "ok"})
                     
             except Exception as e:
                 print(f"[ERROR] Guardando comprobante Telegram: {e}")
+                respuesta = "❌ Error al procesar el comprobante. Intenta de nuevo."
+                enviar_mensaje_telegram(chat_id, respuesta)
+                return JSONResponse({"status": "ok"})
         
-        # Procesar mensaje con el motor existente
+        # Procesar mensaje con el motor existente (solo si no es imagen)
         sys.path.append(str(Path(__file__).parent.parent))
         from app.router import MessageRouter
         
