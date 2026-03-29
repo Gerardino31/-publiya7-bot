@@ -2133,12 +2133,14 @@ async def ver_comprobante_detalle(cliente_id: str, comprobante_id: int):
                 
                 <div class="card">
                     <h3>🖼️ Comprobante</h3>
-                    <p><em>Click para ver imagen:</em></p>
-                    <a href="{comprobante['imagen_data'].decode()}" target="_blank" style="background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                        📸 Ver Comprobante
-                    </a>
+                    <p><em>Imagen del comprobante de pago:</em></p>
+                    <img src="/admin/ver-comprobante/{comprobante_id}" 
+                         style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);"
+                         alt="Comprobante de pago">
                     <br><br>
-                    <small style="color: #718096;">URL: {comprobante['imagen_data'][:80].decode()}...</small>
+                    <a href="/admin/ver-comprobante/{comprobante_id}" target="_blank" style="color: #667eea; font-size: 12px;">
+                        📸 Ver en tamaño completo
+                    </a>
                 </div>
                 
                 <div class="card">
@@ -2160,6 +2162,56 @@ async def ver_comprobante_detalle(cliente_id: str, comprobante_id: int):
         </html>
         """
         return HTMLResponse(content=html)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
+
+@router.get("/ver-comprobante/{comprobante_id}")
+async def ver_comprobante_proxy(comprobante_id: int):
+    """Proxy para ver comprobante de pago (autentica con Twilio)"""
+    try:
+        import os
+        import requests
+        from base64 import b64encode
+        sys.path.append(str(Path(__file__).parent.parent))
+        from database.database_saas import db_saas
+        
+        # Obtener URL del comprobante
+        conn = db_saas._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT imagen_data FROM comprobantes_pago WHERE id = ?', (comprobante_id,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            return HTMLResponse(content="<h1>❌ Comprobante no encontrado</h1>")
+        
+        media_url = row['imagen_data'].decode()
+        
+        # Obtener credenciales de Twilio
+        account_sid = os.environ.get('TWILIO_ACCOUNT_SID', '')
+        auth_token = os.environ.get('TWILIO_AUTH_TOKEN', '')
+        
+        if not account_sid or not auth_token:
+            return HTMLResponse(content="<h1>❌ Error: Credenciales de Twilio no configuradas</h1>")
+        
+        # Autenticar y descargar imagen
+        auth_str = b64encode(f"{account_sid}:{auth_token}".encode()).decode()
+        headers = {"Authorization": f"Basic {auth_str}"}
+        
+        response = requests.get(media_url, headers=headers, timeout=30)
+        
+        if response.status_code != 200:
+            return HTMLResponse(content=f"<h1>❌ Error al obtener imagen: {response.status_code}</h1>")
+        
+        # Determinar content type
+        content_type = response.headers.get('Content-Type', 'image/jpeg')
+        
+        from fastapi.responses import Response
+        return Response(
+            content=response.content,
+            media_type=content_type
+        )
+        
     except Exception as e:
         return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
 
