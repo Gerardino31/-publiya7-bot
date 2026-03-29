@@ -2239,58 +2239,92 @@ async def verificar_pago(cliente_id: str, comprobante_id: int, estado: str = For
         # Actualizar estado
         db_saas.verificar_comprobante(comprobante_id, "Admin", estado)
         
-        # Enviar notificación WhatsApp si está aprobado
+        # Detectar canal del usuario y enviar notificación
         notificacion_enviada = False
         error_notificacion = None
+        canal_detectado = "desconocido"
         
         if estado == "verificado":
-            try:
-                from twilio.rest import Client
-                
-                # Obtener credenciales de Twilio
-                account_sid = os.environ.get('TWILIO_ACCOUNT_SID', '').strip()
-                auth_token = os.environ.get('TWILIO_AUTH_TOKEN', '').strip()
-                from_whatsapp = os.environ.get('TWILIO_WHATSAPP_NUMBER', 'whatsapp:+14155238886')
-                
-                print(f"[DEBUG] TWILIO_ACCOUNT_SID: {'Configurado' if account_sid else 'NO CONFIGURADO'}")
-                print(f"[DEBUG] TWILIO_AUTH_TOKEN: {'Configurado' if auth_token else 'NO CONFIGURADO'}")
-                print(f"[DEBUG] TWILIO_WHATSAPP_NUMBER: {from_whatsapp}")
-                
-                if not account_sid or not auth_token:
-                    error_notificacion = "Credenciales de Twilio no configuradas en variables de entorno"
-                    print(f"⚠️ {error_notificacion}")
-                else:
-                    client = Client(account_sid, auth_token)
-                    mensaje_whatsapp = f"""✅ ¡Pago aprobado!
+            # Detectar canal por formato del user_id
+            if user_id.startswith('telegram:'):
+                canal_detectado = "telegram"
+                # Enviar notificación por Telegram
+                try:
+                    import requests
+                    TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+                    
+                    if TELEGRAM_BOT_TOKEN:
+                        chat_id = user_id.replace('telegram:', '')
+                        mensaje_telegram = f"""✅ ¡Pago aprobado!
 
 Tu pedido *{pedido_id}* está confirmado.
 
 Pronto comenzaremos con la producción. 🚀
 
 ¿Tienes alguna pregunta? Escribe *ASESOR* para hablar con nosotros."""
+                        
+                        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+                        response = requests.post(url, json={
+                            "chat_id": chat_id,
+                            "text": mensaje_telegram,
+                            "parse_mode": "Markdown"
+                        }, timeout=10)
+                        
+                        if response.status_code == 200:
+                            notificacion_enviada = True
+                            print(f"✅ Notificación Telegram enviada a {chat_id}")
+                        else:
+                            error_notificacion = f"Error HTTP {response.status_code}"
+                    else:
+                        error_notificacion = "TELEGRAM_BOT_TOKEN no configurado"
+                        
+                except Exception as e:
+                    error_notificacion = str(e)
+                    print(f"⚠️ Error enviando notificación Telegram: {e}")
                     
-                    # Formato correcto del número de destino
-                    to_number = user_id if user_id.startswith('whatsapp:') else f'whatsapp:{user_id}'
+            else:
+                # Asumir WhatsApp
+                canal_detectado = "whatsapp"
+                try:
+                    from twilio.rest import Client
                     
-                    message = client.messages.create(
-                        from_=from_whatsapp,
-                        body=mensaje_whatsapp,
-                        to=to_number
-                    )
-                    notificacion_enviada = True
-                    print(f"✅ Notificación enviada a {to_number}: {message.sid}")
+                    account_sid = os.environ.get('TWILIO_ACCOUNT_SID', '').strip()
+                    auth_token = os.environ.get('TWILIO_AUTH_TOKEN', '').strip()
+                    from_whatsapp = os.environ.get('TWILIO_WHATSAPP_NUMBER', 'whatsapp:+14155238886')
                     
-            except Exception as e:
-                error_notificacion = str(e)
-                print(f"⚠️ Error enviando notificación WhatsApp: {e}")
+                    if account_sid and auth_token:
+                        client = Client(account_sid, auth_token)
+                        mensaje_whatsapp = f"""✅ ¡Pago aprobado!
+
+Tu pedido *{pedido_id}* está confirmado.
+
+Pronto comenzaremos con la producción. 🚀
+
+¿Tienes alguna pregunta? Escribe *ASESOR* para hablar con nosotros."""
+                        
+                        to_number = user_id if user_id.startswith('whatsapp:') else f'whatsapp:{user_id}'
+                        
+                        message = client.messages.create(
+                            from_=from_whatsapp,
+                            body=mensaje_whatsapp,
+                            to=to_number
+                        )
+                        notificacion_enviada = True
+                        print(f"✅ Notificación WhatsApp enviada a {to_number}: {message.sid}")
+                    else:
+                        error_notificacion = "Credenciales Twilio no configuradas"
+                        
+                except Exception as e:
+                    error_notificacion = str(e)
+                    print(f"⚠️ Error enviando notificación WhatsApp: {e}")
         
         # Construir mensaje de respuesta
         if estado == "verificado":
             if notificacion_enviada:
-                mensaje = "✅ Pago aprobado y cliente notificado por WhatsApp"
+                mensaje = f"✅ Pago aprobado y cliente notificado por {canal_detectado.upper()}"
                 color = "#48bb78"
             else:
-                mensaje = f"✅ Pago aprobado (notificación WhatsApp fallida: {error_notificacion or 'Error desconocido'})"
+                mensaje = f"✅ Pago aprobado (notificación {canal_detectado.upper()} fallida: {error_notificacion or 'Error desconocido'})"
                 color = "#ed8936"
         else:
             mensaje = "❌ Pago rechazado"
