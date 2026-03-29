@@ -18,6 +18,8 @@ class DatabaseSaaS:
         # Usar ruta del disk si existe, sino default local
         if db_path is None:
             disk_path = os.environ.get('DISK_PATH', '/var/data')
+            # Crear directorio si no existe
+            os.makedirs(disk_path, exist_ok=True)
             self.db_path = os.path.join(disk_path, "botlypro_saas.db")
         else:
             self.db_path = db_path

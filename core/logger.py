@@ -11,6 +11,8 @@ from pathlib import Path
 
 # Usar ruta del disk si existe, sino default local
 disk_path = os.environ.get('DISK_PATH', '/var/data')
+# Crear directorio si no existe
+os.makedirs(disk_path, exist_ok=True)
 DB_PATH = Path(disk_path) / "botlypro_logs.db"
 
 def init_logs_db():

@@ -15,6 +15,8 @@ router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 # Usar ruta del disk si existe, sino default local
 disk_path = os.environ.get('DISK_PATH', '/var/data')
+# Crear directorio si no existe
+os.makedirs(disk_path, exist_ok=True)
 DB_PATH = Path(disk_path) / "botlypro_logs.db"
 
 def get_db_connection():
