@@ -5,7 +5,7 @@
 -- 1. TABLA: clientes
 -- Información de cada negocio/cliente SaaS
 -- ============================================
-CREATE TABLE clientes (
+CREATE TABLE IF NOT EXISTS clientes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     cliente_id TEXT UNIQUE NOT NULL,      -- Ej: publiya7, imprenta_xyz
     
@@ -53,7 +53,7 @@ CREATE TABLE clientes (
 -- 2. TABLA: productos
 -- Catálogo de productos por cliente (NORMALIZADO)
 -- ============================================
-CREATE TABLE productos (
+CREATE TABLE IF NOT EXISTS productos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     cliente_id TEXT NOT NULL,
     
@@ -96,7 +96,7 @@ CREATE TABLE productos (
 -- 3. TABLA: carritos
 -- Carritos de compra activos por usuario
 -- ============================================
-CREATE TABLE carritos (
+CREATE TABLE IF NOT EXISTS carritos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     cliente_id TEXT NOT NULL,             -- A qué negocio pertenece
     usuario_id TEXT NOT NULL,             -- Teléfono del cliente final
@@ -127,7 +127,7 @@ CREATE TABLE carritos (
 -- 4. TABLA: carrito_items
 -- Items dentro de cada carrito
 -- ============================================
-CREATE TABLE carrito_items (
+CREATE TABLE IF NOT EXISTS carrito_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     carrito_id INTEGER NOT NULL,
     
@@ -157,7 +157,7 @@ CREATE TABLE carrito_items (
 -- 5. TABLA: pedidos
 -- Pedidos confirmados (ventas reales)
 -- ============================================
-CREATE TABLE pedidos (
+CREATE TABLE IF NOT EXISTS pedidos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     numero_orden TEXT UNIQUE NOT NULL,    -- Ej: ORD-20260326-1234
     
@@ -204,7 +204,7 @@ CREATE TABLE pedidos (
 -- 6. TABLA: pedido_items
 -- Items de cada pedido confirmado
 -- ============================================
-CREATE TABLE pedido_items (
+CREATE TABLE IF NOT EXISTS pedido_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     pedido_id INTEGER NOT NULL,
     
@@ -230,7 +230,7 @@ CREATE TABLE pedido_items (
 -- 7. TABLA: conversaciones
 -- Historial completo de conversaciones (ORO)
 -- ============================================
-CREATE TABLE conversaciones (
+CREATE TABLE IF NOT EXISTS conversaciones (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     cliente_id TEXT NOT NULL,             -- Negocio
     usuario_id TEXT NOT NULL,             -- Teléfono del cliente
@@ -262,7 +262,7 @@ CREATE TABLE conversaciones (
 -- 8. TABLA: estado_usuario
 -- Estado actual de cada conversación (para mantener contexto)
 -- ============================================
-CREATE TABLE estado_usuario (
+CREATE TABLE IF NOT EXISTS estado_usuario (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     cliente_id TEXT NOT NULL,
     usuario_id TEXT NOT NULL,
@@ -292,7 +292,7 @@ CREATE TABLE estado_usuario (
 -- 9. TABLA: metricas_cliente (VISTA/MATERIALIZADA)
 -- Métricas calculadas por cliente (para dashboard)
 -- ============================================
-CREATE TABLE metricas_cliente (
+CREATE TABLE IF NOT EXISTS metricas_cliente (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     cliente_id TEXT UNIQUE NOT NULL,
     
@@ -324,7 +324,7 @@ CREATE TABLE metricas_cliente (
 -- 10. TABLA: notificaciones
 -- Cola de notificaciones al dueño del negocio
 -- ============================================
-CREATE TABLE notificaciones (
+CREATE TABLE IF NOT EXISTS notificaciones (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     cliente_id TEXT NOT NULL,
     
