@@ -24,6 +24,19 @@ def get_db_connection():
 async def get_resumen():
     """Resumen general del dashboard"""
     try:
+        # Si la BD no existe, retornar valores por defecto
+        if not DB_PATH.exists():
+            return {
+                "ventas_hoy": 0,
+                "conversaciones_hoy": 0,
+                "total_decisiones": 0,
+                "ia_vs_reglas": {
+                    "ia": 0,
+                    "reglas": 0,
+                    "porcentaje_ia": 0
+                }
+            }
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -69,15 +82,26 @@ async def get_resumen():
             }
         }
     except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"error": str(e)}
-        )
+        # En caso de error, retornar estructura válida
+        return {
+            "ventas_hoy": 0,
+            "conversaciones_hoy": 0,
+            "total_decisiones": 0,
+            "ia_vs_reglas": {
+                "ia": 0,
+                "reglas": 0,
+                "porcentaje_ia": 0
+            },
+            "error": str(e)
+        }
 
 @router.get("/decisiones")
 async def get_decisiones(limit: int = 50):
     """Últimas decisiones registradas"""
     try:
+        if not DB_PATH.exists():
+            return {"decisiones": []}
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -101,15 +125,20 @@ async def get_decisiones(limit: int = 50):
         
         return {"decisiones": decisiones}
     except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"error": str(e)}
-        )
+        return {"decisiones": [], "error": str(e)}
 
 @router.get("/ia")
 async def get_ia_metrics():
     """Métricas específicas de IA"""
     try:
+        if not DB_PATH.exists():
+            return {
+                "precision_estimada": 0,
+                "total_comparaciones": 0,
+                "coincidencias": 0,
+                "top_decisiones_ia": []
+            }
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -147,15 +176,21 @@ async def get_ia_metrics():
             "top_decisiones_ia": top_decisiones
         }
     except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"error": str(e)}
-        )
+        return {
+            "precision_estimada": 0,
+            "total_comparaciones": 0,
+            "coincidencias": 0,
+            "top_decisiones_ia": [],
+            "error": str(e)
+        }
 
 @router.get("/conversaciones-activas")
 async def get_conversaciones_activas():
     """Conversaciones de las últimas 24 horas"""
     try:
+        if not DB_PATH.exists():
+            return {"conversaciones_activas": []}
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -175,7 +210,4 @@ async def get_conversaciones_activas():
         
         return {"conversaciones_activas": conversaciones}
     except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"error": str(e)}
-        )
+        return {"conversaciones_activas": [], "error": str(e)}
