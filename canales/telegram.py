@@ -71,11 +71,23 @@ async def webhook_telegram(request: Request):
         mensaje_data = data["message"]
         chat_id = str(mensaje_data["chat"]["id"])
         
-        # Obtener texto del mensaje
+        # Obtener texto o foto del mensaje
         if "text" in mensaje_data:
             texto = mensaje_data["text"]
+            es_imagen = False
+            imagen_file_id = None
+        elif "photo" in mensaje_data:
+            # Es una imagen - obtener la de mejor calidad (última)
+            fotos = mensaje_data["photo"]
+            mejor_foto = fotos[-1]  # Última = mejor calidad
+            imagen_file_id = mejor_foto["file_id"]
+            texto = "[COMPROBANTE_PAGO]"
+            es_imagen = True
+            print(f"[Telegram] Imagen recibida: {imagen_file_id}")
         else:
-            texto = "[mensaje no texto]"
+            texto = "[mensaje no soportado]"
+            es_imagen = False
+            imagen_file_id = None
         
         # Obtener info del bot
         bot_info = data.get("message", {}).get("from", {})
@@ -86,6 +98,43 @@ async def webhook_telegram(request: Request):
         usuario_id = normalizar_usuario(chat_id)
         
         print(f"[Telegram] Mensaje de {usuario_id}: {texto[:50]}")
+        
+        # Si es imagen, guardar en base de datos como comprobante
+        if es_imagen and imagen_file_id:
+            try:
+                sys.path.append(str(Path(__file__).parent.parent))
+                from database.database_saas import db_saas
+                
+                # Obtener pedido pendiente del usuario
+                conn = db_saas._get_connection()
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT id FROM pedidos 
+                    WHERE cliente_id = ? AND usuario_id = ? AND estado = 'pendiente_pago'
+                    ORDER BY creado_en DESC LIMIT 1
+                ''', (cliente_id, usuario_id))
+                pedido = cursor.fetchone()
+                conn.close()
+                
+                if pedido:
+                    # Guardar comprobante
+                    pedido_id = pedido['id']
+                    file_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{imagen_file_id}"
+                    
+                    db_saas.guardar_comprobante_pago(
+                        cliente_id=cliente_id,
+                        user_id=usuario_id,
+                        pedido_id=pedido_id,
+                        imagen_data=file_url.encode(),
+                        content_type='image/jpeg'
+                    )
+                    print(f"[Telegram] Comprobante guardado para pedido {pedido_id}")
+                    texto = f"[COMPROBANTE_PAGO:{pedido_id}]"
+                else:
+                    print(f"[Telegram] No hay pedido pendiente para guardar comprobante")
+                    
+            except Exception as e:
+                print(f"[ERROR] Guardando comprobante Telegram: {e}")
         
         # Procesar mensaje con el motor existente
         sys.path.append(str(Path(__file__).parent.parent))
