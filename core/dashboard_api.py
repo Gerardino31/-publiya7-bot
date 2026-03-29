@@ -7,12 +7,15 @@ Endpoints para el panel de analytics.
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 import sqlite3
+import os
 from pathlib import Path
 from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
-DB_PATH = Path(__file__).parent.parent / "botlypro_logs.db"
+# Usar ruta del disk si existe, sino default local
+disk_path = os.environ.get('DISK_PATH', '/var/data')
+DB_PATH = Path(disk_path) / "botlypro_logs.db"
 
 def get_db_connection():
     """Obtiene conexión a la BD de logs"""

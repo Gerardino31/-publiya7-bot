@@ -13,8 +13,14 @@ from typing import Optional, Dict, List, Any
 class DatabaseSaaS:
     """Base de datos para BotlyPro SaaS"""
     
-    def __init__(self, db_path: str = "botlypro_saas.db"):
-        self.db_path = db_path
+    def __init__(self, db_path: str = None):
+        import os
+        # Usar ruta del disk si existe, sino default local
+        if db_path is None:
+            disk_path = os.environ.get('DISK_PATH', '/var/data')
+            self.db_path = os.path.join(disk_path, "botlypro_saas.db")
+        else:
+            self.db_path = db_path
         self.init_database()
     
     def _get_connection(self):

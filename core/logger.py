@@ -5,10 +5,13 @@ Guarda comparativas entre decisiones de reglas vs OpenClaw.
 """
 
 import sqlite3
+import os
 from datetime import datetime
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent.parent / "botlypro_logs.db"
+# Usar ruta del disk si existe, sino default local
+disk_path = os.environ.get('DISK_PATH', '/var/data')
+DB_PATH = Path(disk_path) / "botlypro_logs.db"
 
 def init_logs_db():
     """Inicializa la base de datos de logs si no existe"""
