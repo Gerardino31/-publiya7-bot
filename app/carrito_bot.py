@@ -312,7 +312,7 @@ class CarritoBot:
         lineas.extend([
             "📸 *Por favor envía el comprobante de pago* respondiendo a este mensaje con la imagen.",
             "",
-            "¿Deseas hacer otro pedido? Escribe 'menu'."
+            "¿Deseas hacer otro pedido? Escribe 📋 *MENU*"
         ])
         
         return "\n".join(lineas)
