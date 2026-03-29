@@ -170,6 +170,33 @@ async def webhook_telegram(request: Request):
         router = MessageRouter(config, cliente_id)
         respuesta, metadata = router.procesar_mensaje(texto, usuario_id, cliente_id)
         
+        # Guardar log para Analytics (Fase 1 Observador)
+        try:
+            from core.logger import guardar_evento
+            from core.observador import observar_openclaw
+            
+            contexto_log = {
+                "mensaje": texto,
+                "user_id": usuario_id,
+                "cliente_id": cliente_id,
+                "paso": None,
+                "categoria": None
+            }
+            decision_ia = observar_openclaw(contexto_log)
+            
+            guardar_evento({
+                "usuario_id": usuario_id,
+                "cliente_id": cliente_id,
+                "mensaje": texto[:200],
+                "decision_reglas": metadata.get('tipo', 'desconocido'),
+                "decision_ia": decision_ia,
+                "decision_final": metadata.get('tipo', 'desconocido'),
+                "paso_bot": None,
+                "categoria": None
+            })
+        except Exception as e:
+            print(f"[LOG ERROR Telegram] {e}")
+        
         # Enviar respuesta a Telegram
         enviar_mensaje_telegram(chat_id, respuesta)
         
