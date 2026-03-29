@@ -38,7 +38,10 @@ async def webhook_twilio(
         usuario_id = normalizar_usuario(From)
         
         # Procesar mensaje con el motor existente
-        router = MessageRouter()
+        # Cargar configuración del cliente
+        config = {"nombre": "Publiya7", "cliente_id": cliente_id}
+        
+        router = MessageRouter(config, cliente_id)
         respuesta, metadata = router.procesar_mensaje(Body, usuario_id, cliente_id)
         
         # Retornar respuesta en formato Twilio

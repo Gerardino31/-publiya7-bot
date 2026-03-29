@@ -77,7 +77,10 @@ async def webhook_telegram(request: Request):
         sys.path.append(str(Path(__file__).parent.parent))
         from app.router import MessageRouter
         
-        router = MessageRouter()
+        # Cargar configuración del cliente
+        config = {"nombre": "Publiya7", "cliente_id": cliente_id}
+        
+        router = MessageRouter(config, cliente_id)
         respuesta, metadata = router.procesar_mensaje(texto, usuario_id, cliente_id)
         
         # Enviar respuesta a Telegram
