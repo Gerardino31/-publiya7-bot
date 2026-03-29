@@ -111,7 +111,7 @@ async def webhook_telegram(request: Request):
                 cursor = conn.cursor()
                 cursor.execute('''
                     SELECT id FROM pedidos 
-                    WHERE cliente_id = ? AND usuario_id = ? AND estado = 'pendiente_pago'
+                    WHERE cliente_id = ? AND usuario_id = ? AND estado = 'pendiente'
                     ORDER BY creado_en DESC LIMIT 1
                 ''', (cliente_id, usuario_id))
                 pedido = cursor.fetchone()
