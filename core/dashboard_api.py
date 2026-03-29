@@ -13,11 +13,13 @@ from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
-# Usar ruta del disk si existe, sino default local
+# Usar ruta del disk si existe y es escribible, sino default local
 disk_path = os.environ.get('DISK_PATH', '/var/data')
-# Crear directorio si no existe
-os.makedirs(disk_path, exist_ok=True)
-DB_PATH = Path(disk_path) / "botlypro_logs.db"
+if os.path.exists(disk_path) and os.access(disk_path, os.W_OK):
+    DB_PATH = Path(disk_path) / "botlypro_logs.db"
+else:
+    DB_PATH = Path("botlypro_logs.db")
+    print(f"[WARNING] Disk no disponible, usando dashboard local: {DB_PATH}")
 
 def get_db_connection():
     """Obtiene conexión a la BD de logs"""

@@ -18,9 +18,13 @@ class DatabaseSaaS:
         # Usar ruta del disk si existe, sino default local
         if db_path is None:
             disk_path = os.environ.get('DISK_PATH', '/var/data')
-            # Crear directorio si no existe
-            os.makedirs(disk_path, exist_ok=True)
-            self.db_path = os.path.join(disk_path, "botlypro_saas.db")
+            # Verificar si el disk está disponible
+            if os.path.exists(disk_path) and os.access(disk_path, os.W_OK):
+                self.db_path = os.path.join(disk_path, "botlypro_saas.db")
+            else:
+                # Fallback a directorio local si no hay acceso
+                self.db_path = "botlypro_saas.db"
+                print(f"[WARNING] Disk no disponible, usando base de datos local: {self.db_path}")
         else:
             self.db_path = db_path
         self.init_database()
