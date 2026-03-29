@@ -48,6 +48,23 @@ try:
 except Exception as e:
     logger.error(f"❌ Error cargando API dashboard: {e}")
 
+# ============================================
+# MULTI-CANAL: WhatsApp + Telegram
+# ============================================
+try:
+    from canales.whatsapp import router_whatsapp
+    app.include_router(router_whatsapp)
+    logger.info("✅ Canal WhatsApp (Twilio) cargado")
+except Exception as e:
+    logger.error(f"❌ Error cargando canal WhatsApp: {e}")
+
+try:
+    from canales.telegram import router_telegram
+    app.include_router(router_telegram)
+    logger.info("✅ Canal Telegram cargado")
+except Exception as e:
+    logger.error(f"❌ Error cargando canal Telegram: {e}")
+
 @app.get("/")
 async def root():
     """Endpoint raíz para verificar que el servicio está funcionando."""
