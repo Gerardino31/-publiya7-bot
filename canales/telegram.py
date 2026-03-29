@@ -120,7 +120,22 @@ async def webhook_telegram(request: Request):
                 if pedido:
                     # Guardar comprobante
                     pedido_id = pedido['id']
-                    file_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{imagen_file_id}"
+                    
+                    # Obtener URL real de la imagen de Telegram
+                    # Primero llamar a getFile para obtener la ruta
+                    getfile_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getFile?file_id={imagen_file_id}"
+                    try:
+                        file_response = requests.get(getfile_url, timeout=10)
+                        file_data = file_response.json()
+                        if file_data.get('ok'):
+                            file_path = file_data['result']['file_path']
+                            file_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}"
+                        else:
+                            # Fallback: guardar el file_id y construir URL en el proxy
+                            file_url = f"telegram://{imagen_file_id}"
+                    except Exception as e:
+                        print(f"[ERROR] Obteniendo file_path de Telegram: {e}")
+                        file_url = f"telegram://{imagen_file_id}"
                     
                     db_saas.guardar_comprobante_pago(
                         cliente_id=cliente_id,

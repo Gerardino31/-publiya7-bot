@@ -2167,7 +2167,7 @@ async def ver_comprobante_detalle(cliente_id: str, comprobante_id: int):
 
 @router.get("/ver-comprobante/{comprobante_id}")
 async def ver_comprobante_proxy(comprobante_id: int):
-    """Proxy para ver comprobante de pago (autentica con Twilio)"""
+    """Proxy para ver comprobante de pago (autentica según el canal)"""
     try:
         import os
         import requests
@@ -2187,18 +2187,45 @@ async def ver_comprobante_proxy(comprobante_id: int):
         
         media_url = row['imagen_data'].decode()
         
-        # Obtener credenciales de Twilio
-        account_sid = os.environ.get('TWILIO_ACCOUNT_SID', '')
-        auth_token = os.environ.get('TWILIO_AUTH_TOKEN', '')
-        
-        if not account_sid or not auth_token:
-            return HTMLResponse(content="<h1>❌ Error: Credenciales de Twilio no configuradas</h1>")
-        
-        # Autenticar y descargar imagen
-        auth_str = b64encode(f"{account_sid}:{auth_token}".encode()).decode()
-        headers = {"Authorization": f"Basic {auth_str}"}
-        
-        response = requests.get(media_url, headers=headers, timeout=30)
+        # Detectar si es URL de Telegram o Twilio
+        if media_url.startswith('telegram://'):
+            # Protocolo personalizado para Telegram
+            TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+            if not TELEGRAM_BOT_TOKEN:
+                return HTMLResponse(content="<h1>❌ Error: Token de Telegram no configurado</h1>")
+            
+            file_id = media_url.replace('telegram://', '')
+            # Obtener file_path de Telegram
+            getfile_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getFile?file_id={file_id}"
+            file_response = requests.get(getfile_url, timeout=10)
+            file_data = file_response.json()
+            
+            if file_data.get('ok'):
+                file_path = file_data['result']['file_path']
+                media_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}"
+                response = requests.get(media_url, timeout=30)
+            else:
+                return HTMLResponse(content="<h1>❌ Error: No se pudo obtener archivo de Telegram</h1>")
+                
+        elif 'telegram.org' in media_url:
+            # URL completa de Telegram
+            response = requests.get(media_url, timeout=30)
+            
+        elif 'twilio.com' in media_url or 'api.twilio.com' in media_url:
+            # URL de Twilio - necesita autenticación
+            account_sid = os.environ.get('TWILIO_ACCOUNT_SID', '')
+            auth_token = os.environ.get('TWILIO_AUTH_TOKEN', '')
+            
+            if not account_sid or not auth_token:
+                return HTMLResponse(content="<h1>❌ Error: Credenciales de Twilio no configuradas</h1>")
+            
+            # Autenticar y descargar imagen
+            auth_str = b64encode(f"{account_sid}:{auth_token}".encode()).decode()
+            headers = {"Authorization": f"Basic {auth_str}"}
+            response = requests.get(media_url, headers=headers, timeout=30)
+        else:
+            # URL desconocida, intentar directo
+            response = requests.get(media_url, timeout=30)
         
         if response.status_code != 200:
             return HTMLResponse(content=f"<h1>❌ Error al obtener imagen: {response.status_code}</h1>")
