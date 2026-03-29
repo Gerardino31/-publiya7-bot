@@ -15,11 +15,25 @@ router_telegram = APIRouter(prefix="/webhook")
 # Token del bot de Telegram (desde variables de entorno)
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
 
-def obtener_cliente_por_bot(bot_username: str) -> str:
-    """Obtiene el cliente_id basado en el bot de Telegram"""
-    # Mapeo simple: cada cliente puede tener su propio bot
+def obtener_cliente_por_bot(bot_username: str) -> tuple:
+    """Obtiene el cliente_id y config basado en el bot de Telegram"""
+    import json
+    from pathlib import Path
+    
     # Por ahora, default a publiya7
-    return "publiya7"
+    cliente_id = "publiya7"
+    
+    # Cargar configuración completa del cliente
+    config_path = Path(__file__).parent.parent / "clientes" / "configs" / f"{cliente_id}.json"
+    
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+    except Exception as e:
+        print(f"[ERROR] No se pudo cargar config: {e}")
+        config = {"nombre": "Publiya7", "cliente_id": cliente_id}
+    
+    return cliente_id, config
 
 def normalizar_usuario(chat_id: str) -> str:
     """Crea ID único de usuario para este canal"""
@@ -68,7 +82,7 @@ async def webhook_telegram(request: Request):
         bot_username = bot_info.get("username", "unknown")
         
         # Normalizar contexto
-        cliente_id = obtener_cliente_por_bot(bot_username)
+        cliente_id, config = obtener_cliente_por_bot(bot_username)
         usuario_id = normalizar_usuario(chat_id)
         
         print(f"[Telegram] Mensaje de {usuario_id}: {texto[:50]}")
@@ -76,9 +90,6 @@ async def webhook_telegram(request: Request):
         # Procesar mensaje con el motor existente
         sys.path.append(str(Path(__file__).parent.parent))
         from app.router import MessageRouter
-        
-        # Cargar configuración del cliente
-        config = {"nombre": "Publiya7", "cliente_id": cliente_id}
         
         router = MessageRouter(config, cliente_id)
         respuesta, metadata = router.procesar_mensaje(texto, usuario_id, cliente_id)

@@ -10,11 +10,25 @@ from pathlib import Path
 
 router_whatsapp = APIRouter(prefix="/webhook")
 
-def obtener_cliente_por_numero(numero_twilio: str) -> str:
-    """Obtiene el cliente_id basado en el número de Twilio"""
-    # Por ahora, asumimos publiya7 como default
-    # En producción, buscar en base de datos
-    return "publiya7"
+def obtener_cliente_por_numero(numero_twilio: str) -> tuple:
+    """Obtiene el cliente_id y config basado en el número de Twilio"""
+    import json
+    from pathlib import Path
+    
+    # Por ahora, default a publiya7
+    cliente_id = "publiya7"
+    
+    # Cargar configuración completa del cliente
+    config_path = Path(__file__).parent.parent / "clientes" / "configs" / f"{cliente_id}.json"
+    
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+    except Exception as e:
+        print(f"[ERROR] No se pudo cargar config: {e}")
+        config = {"nombre": "Publiya7", "cliente_id": cliente_id}
+    
+    return cliente_id, config
 
 def normalizar_usuario(from_number: str) -> str:
     """Crea ID único de usuario para este canal"""
@@ -34,13 +48,10 @@ async def webhook_twilio(
         from app.router import MessageRouter
         
         # Normalizar contexto
-        cliente_id = obtener_cliente_por_numero(To)
+        cliente_id, config = obtener_cliente_por_numero(To)
         usuario_id = normalizar_usuario(From)
         
         # Procesar mensaje con el motor existente
-        # Cargar configuración del cliente
-        config = {"nombre": "Publiya7", "cliente_id": cliente_id}
-        
         router = MessageRouter(config, cliente_id)
         respuesta, metadata = router.procesar_mensaje(Body, usuario_id, cliente_id)
         
