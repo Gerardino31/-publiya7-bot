@@ -178,6 +178,18 @@ class ComprobantePago(Base):
     verificado_por = Column(String(100))
     fecha_verificacion = Column(DateTime)
 
+class ModoUsuario(Base):
+    __tablename__ = 'modo_usuario'
+    
+    id = Column(Integer, primary_key=True)
+    cliente_id = Column(String(50), nullable=False)
+    user_id = Column(String(100), nullable=False)
+    modo = Column(String(50), default='bot')  # 'bot' o 'humano'
+    activado_por = Column(String(100), default='sistema')
+    fecha_cambio = Column(DateTime, default=datetime.now)
+    
+    __table_args__ = (UniqueConstraint('cliente_id', 'user_id'),)
+
 # ============================================
 # INICIALIZACIÓN
 # ============================================
@@ -290,24 +302,33 @@ class DatabaseSaaS:
         return None
     
     def agregar_item_carrito(self, carrito_id: int, producto: Dict, 
-                            cantidad: str, precio_unitario: int, subtotal: int) -> bool:
+                            cantidad: int = None, medidas: str = None, area: float = None,
+                            precio_unitario: int = None, subtotal: int = None) -> bool:
         """Agrega un item al carrito"""
         session = self._get_session()
         try:
+            # Preparar cantidad como string
+            if medidas:
+                cantidad_str = medidas
+            elif cantidad:
+                cantidad_str = str(cantidad)
+            else:
+                cantidad_str = "1"
+            
             item = CarritoItem(
                 carrito_id=carrito_id,
-                producto_id=producto.get('id'),
+                producto_id=producto.get('prod_id') or producto.get('id'),
                 nombre_producto=producto.get('nombre'),
-                cantidad=cantidad,
-                precio_unitario=precio_unitario,
-                subtotal=subtotal
+                cantidad=cantidad_str,
+                precio_unitario=int(precio_unitario) if precio_unitario else 0,
+                subtotal=int(subtotal) if subtotal else 0
             )
             session.add(item)
             
             # Actualizar totales del carrito
             carrito = session.query(Carrito).filter(Carrito.id == carrito_id).first()
             if carrito:
-                carrito.total = (carrito.total or 0) + subtotal
+                carrito.total = (carrito.total or 0) + (int(subtotal) if subtotal else 0)
                 carrito.cantidad_items = (carrito.cantidad_items or 0) + 1
             
             session.commit()
@@ -594,6 +615,67 @@ class DatabaseSaaS:
             session.close()
             print(f"[ERROR] verificar_comprobante: {e}")
             return False
+    
+    # ============================================
+    # MODO USUARIO (Bot/Humano)
+    # ============================================
+    
+    def obtener_modo_usuario(self, cliente_id: str, user_id: str) -> str:
+        """Obtiene el modo actual del usuario (bot o humano)"""
+        session = self._get_session()
+        try:
+            modo = session.query(ModoUsuario).filter(
+                ModoUsuario.cliente_id == cliente_id,
+                ModoUsuario.user_id == user_id
+            ).first()
+            session.close()
+            return modo.modo if modo else 'bot'
+        except Exception as e:
+            session.close()
+            print(f"[ERROR] obtener_modo_usuario: {e}")
+            return 'bot'
+    
+    def set_modo_usuario(self, cliente_id: str, user_id: str, modo: str, activado_por: str = 'sistema') -> bool:
+        """Cambia el modo del usuario (bot o humano)"""
+        session = self._get_session()
+        try:
+            modo_db = session.query(ModoUsuario).filter(
+                ModoUsuario.cliente_id == cliente_id,
+                ModoUsuario.user_id == user_id
+            ).first()
+            
+            if modo_db:
+                modo_db.modo = modo
+                modo_db.activado_por = activado_por
+                modo_db.fecha_cambio = datetime.now()
+            else:
+                modo_db = ModoUsuario(
+                    cliente_id=cliente_id,
+                    user_id=user_id,
+                    modo=modo,
+                    activado_por=activado_por
+                )
+                session.add(modo_db)
+            
+            session.commit()
+            session.close()
+            return True
+        except Exception as e:
+            session.rollback()
+            session.close()
+            print(f"[ERROR] set_modo_usuario: {e}")
+            return False
+    
+    def guardar_mensaje_asesor(self, cliente_id: str, user_id: str, mensaje: str, asesor: str) -> bool:
+        """Guarda un mensaje del asesor para enviar al usuario"""
+        # Por ahora, solo logueamos - la implementación completa requeriría una tabla adicional
+        print(f"[MODO HUMANO] Mensaje de {asesor} para {user_id}: {mensaje[:50]}...")
+        return True
+    
+    def obtener_mensajes_pendientes_asesor(self, cliente_id: str, user_id: str) -> List[Dict]:
+        """Obtiene mensajes pendientes del asesor para el usuario"""
+        # Implementación básica - retorna lista vacía
+        return []
 
 
 # Instancia global
