@@ -34,6 +34,10 @@ class DatabaseSaaS:
         """Inicializa todas las tablas"""
         schema_path = Path(__file__).parent / "schema_saas_pro.sql"
         
+        print(f"[DB DEBUG] Buscando schema en: {schema_path}")
+        print(f"[DB DEBUG] Directorio actual: {Path(__file__).parent}")
+        print(f"[DB DEBUG] Archivos en directorio: {list(Path(__file__).parent.glob('*.sql'))}")
+        
         if not schema_path.exists():
             print(f"[DB ERROR] Schema no encontrado: {schema_path}")
             return
