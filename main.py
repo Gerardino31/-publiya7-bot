@@ -116,18 +116,30 @@ async def receive_webhook(
                 cliente_id = 'publiya7'
                 
                 # Buscar pedido más reciente del usuario
-                conn = db_saas._get_connection()
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT numero_orden FROM pedidos 
-                    WHERE cliente_id = ? AND usuario_id = ? 
-                    AND creado_en > datetime('now', '-1 day')
-                    ORDER BY creado_en DESC LIMIT 1
-                """, (cliente_id, from_number))
-                row = cursor.fetchone()
-                conn.close()
+                from database.database_saas import Pedido
+                from sqlalchemy import create_engine
+                from sqlalchemy.orm import sessionmaker
+                from database.database_saas import DATABASE_URL, USE_POSTGRES
                 
-                pedido_id = row['numero_orden'] if row else 'SIN-PEDIDO'
+                if USE_POSTGRES:
+                    engine = create_engine(DATABASE_URL)
+                else:
+                    import os
+                    disk_path = os.environ.get('DISK_PATH', '/data')
+                    db_path = os.path.join(disk_path, "botlypro_saas.db")
+                    engine = create_engine(f"sqlite:///{db_path}")
+                
+                Session = sessionmaker(bind=engine)
+                session = Session()
+                
+                from datetime import datetime, timedelta
+                pedido = session.query(Pedido).filter(
+                    Pedido.cliente_id == cliente_id,
+                    Pedido.usuario_id == from_number,
+                    Pedido.creado_en > datetime.now() - timedelta(days=1)
+                ).order_by(Pedido.creado_en.desc()).first()
+                
+                pedido_id = numero_orden if numero_orden else 'SIN-PEDIDO'
                 
                 # Descargar imagen de Twilio
                 import base64
