@@ -122,8 +122,8 @@ async def webhook_telegram(request: Request):
                 conn.close()
                 
                 if pedido:
-                    # Guardar comprobante
-                    pedido_id = pedido['id']
+                    # Guardar comprobante - pedido es tupla (id,) en PostgreSQL o dict en SQLite
+                    pedido_id = pedido[0] if isinstance(pedido, tuple) else pedido['id']
                     
                     # Obtener URL real de la imagen de Telegram
                     # Primero llamar a getFile para obtener la ruta
