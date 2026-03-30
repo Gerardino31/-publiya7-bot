@@ -49,23 +49,33 @@ class DatabaseSaaS:
             conn = self._get_connection()
             cursor = conn.cursor()
             
-            # Verificar si la tabla carritos existe y tiene la columna usuario_id
+            # Verificar si hay tablas con schema antiguo (sin usuario_id)
+            tablas_a_recrear = []
+            
+            # Verificar carritos
             cursor.execute("PRAGMA table_info(carritos)")
             columnas = cursor.fetchall()
+            if columnas and 'usuario_id' not in [col[1] for col in columnas]:
+                tablas_a_recrear.append('carritos')
             
-            if columnas:
-                nombres_columnas = [col[1] for col in columnas]
-                if 'usuario_id' not in nombres_columnas:
-                    print("[DB WARNING] Schema antiguo detectado, recreando tablas...")
-                    # Eliminar tablas antiguas
-                    cursor.execute("DROP TABLE IF EXISTS carritos")
-                    cursor.execute("DROP TABLE IF EXISTS carrito_items")
-                    cursor.execute("DROP TABLE IF EXISTS pedidos")
-                    cursor.execute("DROP TABLE IF EXISTS pedido_items")
-                    cursor.execute("DROP TABLE IF EXISTS estado_usuario")
-                    cursor.execute("DROP TABLE IF EXISTS conversaciones")
-                    conn.commit()
-                    print("[DB] Tablas antiguas eliminadas")
+            # Verificar pedidos
+            cursor.execute("PRAGMA table_info(pedidos)")
+            columnas = cursor.fetchall()
+            if columnas and 'usuario_id' not in [col[1] for col in columnas]:
+                tablas_a_recrear.append('pedidos')
+            
+            if tablas_a_recrear:
+                print(f"[DB WARNING] Schema antiguo detectado en: {tablas_a_recrear}, recreando tablas...")
+                # Eliminar tablas antiguas
+                cursor.execute("DROP TABLE IF EXISTS carritos")
+                cursor.execute("DROP TABLE IF EXISTS carrito_items")
+                cursor.execute("DROP TABLE IF EXISTS pedidos")
+                cursor.execute("DROP TABLE IF EXISTS pedido_items")
+                cursor.execute("DROP TABLE IF EXISTS estado_usuario")
+                cursor.execute("DROP TABLE IF EXISTS conversaciones")
+                cursor.execute("DROP TABLE IF EXISTS estado_conversacion")
+                conn.commit()
+                print("[DB] Tablas antiguas eliminadas")
             
             # Ejecutar schema completo
             cursor.executescript(schema)
