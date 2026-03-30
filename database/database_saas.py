@@ -131,33 +131,37 @@ class DatabaseSaaS:
     
     def obtener_carrito_activo(self, cliente_id: str, usuario_id: str) -> Optional[Dict]:
         """Obtiene el carrito activo de un usuario, o crea uno nuevo"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        # Buscar carrito activo no expirado
-        cursor.execute("""
-            SELECT * FROM carritos 
-            WHERE cliente_id = ? AND usuario_id = ? 
-            AND estado = 'activo' 
-            AND (expira_en IS NULL OR expira_en > ?)
-            ORDER BY creado_en DESC LIMIT 1
-        """, (cliente_id, usuario_id, datetime.now()))
-        
-        row = cursor.fetchone()
-        conn.close()
-        
-        if row:
-            return dict(row)
-        
-        # Si no hay carrito activo, crear uno nuevo
         try:
-            carrito_id = self.crear_carrito(cliente_id, usuario_id)
-            if carrito_id:
-                return self.obtener_carrito_por_id(carrito_id)
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            # Buscar carrito activo no expirado
+            cursor.execute("""
+                SELECT * FROM carritos 
+                WHERE cliente_id = ? AND usuario_id = ? 
+                AND estado = 'activo' 
+                AND (expira_en IS NULL OR expira_en > ?)
+                ORDER BY creado_en DESC LIMIT 1
+            """, (cliente_id, usuario_id, datetime.now()))
+            
+            row = cursor.fetchone()
+            conn.close()
+            
+            if row:
+                return dict(row)
+            
+            # Si no hay carrito activo, crear uno nuevo
+            try:
+                carrito_id = self.crear_carrito(cliente_id, usuario_id)
+                if carrito_id:
+                    return self.obtener_carrito_por_id(carrito_id)
+            except Exception as e:
+                print(f"[DB WARNING] Error creando carrito: {e}")
+            
+            return None
         except Exception as e:
-            print(f"[DB WARNING] Error creando carrito: {e}")
-        
-        return None
+            print(f"[ERROR] obtener_carrito_activo: {e}")
+            return None
     
     def obtener_carrito_por_id(self, carrito_id: int) -> Optional[Dict]:
         """Obtiene un carrito por su ID"""
