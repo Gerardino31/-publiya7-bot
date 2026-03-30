@@ -396,8 +396,11 @@ class DatabaseSaaS:
         """Crea un nuevo pedido desde un carrito"""
         session = self._get_session()
         try:
-            # Generar número de orden
-            numero_orden = f"ORD-{datetime.now().strftime('%Y%m%d')}-{carrito_id}"
+            # Generar número de orden único (con timestamp y random)
+            import random
+            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+            random_suffix = random.randint(1000, 9999)
+            numero_orden = f"ORD-{timestamp}-{random_suffix}"
             
             # Usar telefono_contacto si se proporciona, sino telefono
             telefono_final = telefono_contacto if telefono_contacto else telefono
