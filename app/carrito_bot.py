@@ -181,10 +181,12 @@ class CarritoBot:
         lineas.append("")
         
         for i, item in enumerate(items, 1):
-            if item['medidas']:
-                cantidad_str = f"{item['medidas']}"
+            cantidad_val = item.get('cantidad', '')
+            # Si la cantidad contiene 'x', es una medida (ej: 100x200)
+            if cantidad_val and 'x' in str(cantidad_val).lower():
+                cantidad_str = f"{cantidad_val}"
             else:
-                cantidad_str = f"{item['cantidad']:,} unid"
+                cantidad_str = f"{cantidad_val} unid"
             
             lineas.append(f"{i}. {item['nombre_producto']}")
             # Mostrar precio unitario con decimales si es necesario

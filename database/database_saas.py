@@ -307,6 +307,9 @@ class DatabaseSaaS:
         """Agrega un item al carrito"""
         session = self._get_session()
         try:
+            # Debug
+            print(f"[DEBUG] agregar_item_carrito: carrito_id={carrito_id}, producto={producto}, cantidad={cantidad}, medidas={medidas}, subtotal={subtotal}")
+            
             # Preparar cantidad como string
             if medidas:
                 cantidad_str = medidas
@@ -315,21 +318,28 @@ class DatabaseSaaS:
             else:
                 cantidad_str = "1"
             
+            # Asegurar que subtotal sea un número válido
+            subtotal_int = int(subtotal) if subtotal and subtotal > 0 else 0
+            precio_int = int(precio_unitario) if precio_unitario and precio_unitario > 0 else 0
+            
+            print(f"[DEBUG] subtotal_int={subtotal_int}, precio_int={precio_int}")
+            
             item = CarritoItem(
                 carrito_id=carrito_id,
                 producto_id=producto.get('prod_id') or producto.get('id'),
                 nombre_producto=producto.get('nombre'),
                 cantidad=cantidad_str,
-                precio_unitario=int(precio_unitario) if precio_unitario else 0,
-                subtotal=int(subtotal) if subtotal else 0
+                precio_unitario=precio_int,
+                subtotal=subtotal_int
             )
             session.add(item)
             
             # Actualizar totales del carrito
             carrito = session.query(Carrito).filter(Carrito.id == carrito_id).first()
             if carrito:
-                carrito.total = (carrito.total or 0) + (int(subtotal) if subtotal else 0)
+                carrito.total = (carrito.total or 0) + subtotal_int
                 carrito.cantidad_items = (carrito.cantidad_items or 0) + 1
+                print(f"[DEBUG] Carrito actualizado: total={carrito.total}, items={carrito.cantidad_items}")
             
             session.commit()
             session.close()
@@ -338,6 +348,8 @@ class DatabaseSaaS:
             session.rollback()
             session.close()
             print(f"[ERROR] agregar_item_carrito: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def obtener_items_carrito(self, carrito_id: int) -> List[Dict]:
