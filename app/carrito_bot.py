@@ -44,7 +44,15 @@ class CarritoBot:
         """Agrega un producto al carrito y retorna mensaje para el usuario"""
         
         # Obtener o crear carrito
-        carrito = db_saas.obtener_carrito_activo(cliente_id, user_id)
+        try:
+            carrito = db_saas.obtener_carrito_activo(cliente_id, user_id)
+            print(f"[DEBUG] carrito_bot.agregar_producto: carrito={carrito}")
+        except Exception as e:
+            print(f"[ERROR] carrito_bot.obtener_carrito_activo: {e}")
+            import traceback
+            traceback.print_exc()
+            return f"❌ Error al crear carrito: {e}"
+        
         if not carrito:
             return "❌ Error al crear carrito. Intente de nuevo."
         
