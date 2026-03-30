@@ -345,7 +345,7 @@ class DatabaseSaaS:
     # ESTADO DE CONVERSACIÓN (migrado desde db.py)
     # ============================================
     
-    def guardar_estado(self, cliente_id: str, user_id: str, estado: Dict) -> bool:
+    def guardar_estado(self, cliente_id: str, user_id: str, estado: Dict, _retry_count: int = 0) -> bool:
         """Guarda el estado de una conversación"""
         try:
             conn = self._get_connection()
@@ -394,11 +394,11 @@ class DatabaseSaaS:
             conn.close()
             return True
         except sqlite3.OperationalError as e:
-            if "database is locked" in str(e):
-                print(f"[WARNING] Base de datos bloqueada, reintentando...")
+            if "database is locked" in str(e) and _retry_count < 3:
+                print(f"[WARNING] Base de datos bloqueada, reintentando... ({_retry_count + 1}/3)")
                 import time
-                time.sleep(0.1)
-                return self.guardar_estado(cliente_id, user_id, estado)
+                time.sleep(0.1 * (_retry_count + 1))
+                return self.guardar_estado(cliente_id, user_id, estado, _retry_count + 1)
             print(f"[ERROR] guardar_estado: {e}")
             return False
         except Exception as e:
@@ -474,7 +474,7 @@ class DatabaseSaaS:
             print(f"[ERROR] limpiar_estado: {e}")
             return False
     
-    def guardar_conversacion(self, cliente_id: str, user_id: str, mensaje: str, respuesta: str, tipo: str) -> bool:
+    def guardar_conversacion(self, cliente_id: str, user_id: str, mensaje: str, respuesta: str, tipo: str, _retry_count: int = 0) -> bool:
         """Guarda un mensaje de conversación para auditoría"""
         try:
             conn = self._get_connection()
@@ -525,11 +525,11 @@ class DatabaseSaaS:
             conn.close()
             return True
         except sqlite3.OperationalError as e:
-            if "database is locked" in str(e):
-                print(f"[WARNING] Base de datos bloqueada, reintentando...")
+            if "database is locked" in str(e) and _retry_count < 3:
+                print(f"[WARNING] Base de datos bloqueada, reintentando... ({_retry_count + 1}/3)")
                 import time
-                time.sleep(0.1)
-                return self.guardar_conversacion(cliente_id, user_id, mensaje, respuesta, tipo)
+                time.sleep(0.1 * (_retry_count + 1))
+                return self.guardar_conversacion(cliente_id, user_id, mensaje, respuesta, tipo, _retry_count + 1)
             print(f"[ERROR] guardar_conversacion: {e}")
             return False
         except Exception as e:
