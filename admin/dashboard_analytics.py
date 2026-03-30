@@ -32,9 +32,23 @@ async def dashboard_analytics():
                 color: white;
                 padding: 30px;
                 text-align: center;
+                position: relative;
             }
             .header h1 { font-size: 28px; margin-bottom: 10px; }
             .header p { opacity: 0.9; }
+            .back-btn {
+                position: absolute;
+                left: 30px;
+                top: 50%;
+                transform: translateY(-50%);
+                background: rgba(255,255,255,0.2);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 6px;
+                text-decoration: none;
+                font-size: 14px;
+            }
+            .back-btn:hover { background: rgba(255,255,255,0.3); }
             .container {
                 max-width: 1200px;
                 margin: 0 auto;
@@ -113,6 +127,7 @@ async def dashboard_analytics():
     </head>
     <body>
         <div class="header">
+            <a href="/admin/dashboard" class="back-btn">← Volver al Dashboard</a>
             <h1>📊 Dashboard Analytics</h1>
             <p>IA vs Reglas - Métricas en tiempo real</p>
         </div>
