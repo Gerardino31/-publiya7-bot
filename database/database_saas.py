@@ -83,10 +83,19 @@ class DatabaseSaaS:
             
             return carrito_id
         except sqlite3.IntegrityError:
-            # El carrito ya existe, obtener el ID
+            # El carrito ya existe, buscarlo directamente (sin recursión)
             conn.close()
-            carrito = self.obtener_carrito_activo(cliente_id, usuario_id)
-            return carrito['id'] if carrito else None
+            conn2 = self._get_connection()
+            cursor2 = conn2.cursor()
+            cursor2.execute("""
+                SELECT id FROM carritos 
+                WHERE cliente_id = ? AND usuario_id = ? 
+                AND estado = 'activo'
+                ORDER BY creado_en DESC LIMIT 1
+            """, (cliente_id, usuario_id))
+            row = cursor2.fetchone()
+            conn2.close()
+            return row['id'] if row else None
     
     def obtener_carrito_activo(self, cliente_id: str, usuario_id: str) -> Optional[Dict]:
         """Obtiene el carrito activo de un usuario, o crea uno nuevo"""
@@ -109,8 +118,14 @@ class DatabaseSaaS:
             return dict(row)
         
         # Si no hay carrito activo, crear uno nuevo
-        carrito_id = self.crear_carrito(cliente_id, usuario_id)
-        return self.obtener_carrito_por_id(carrito_id)
+        try:
+            carrito_id = self.crear_carrito(cliente_id, usuario_id)
+            if carrito_id:
+                return self.obtener_carrito_por_id(carrito_id)
+        except Exception as e:
+            print(f"[DB WARNING] Error creando carrito: {e}")
+        
+        return None
     
     def obtener_carrito_por_id(self, carrito_id: int) -> Optional[Dict]:
         """Obtiene un carrito por su ID"""
