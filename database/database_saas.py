@@ -588,7 +588,7 @@ class DatabaseSaaS:
     # ============================================
     
     def guardar_comprobante_pago(self, cliente_id: str, user_id: str, 
-                                  pedido_id: str, imagen_data: str) -> int:
+                                  pedido_id: str, imagen_data: str, content_type: str = None) -> int:
         conn = self._get_connection()
         cursor = conn.cursor()
         try:

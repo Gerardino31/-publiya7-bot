@@ -107,11 +107,15 @@ async def webhook_telegram(request: Request):
                 from database.database_saas import db_saas
                 
                 # Obtener pedido pendiente del usuario
+                # Adaptar query según base de datos
+                from database.database_saas import USE_POSTGRES
+                ph = "%s" if USE_POSTGRES else "?"
+                
                 conn = db_saas._get_connection()
                 cursor = conn.cursor()
-                cursor.execute('''
+                cursor.execute(f'''
                     SELECT id FROM pedidos 
-                    WHERE cliente_id = ? AND usuario_id = ? AND estado = 'confirmado'
+                    WHERE cliente_id = {ph} AND usuario_id = {ph} AND estado = 'confirmado'
                     ORDER BY creado_en DESC LIMIT 1
                 ''', (cliente_id, usuario_id))
                 pedido = cursor.fetchone()
