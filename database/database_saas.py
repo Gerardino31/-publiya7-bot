@@ -390,25 +390,28 @@ class DatabaseSaaS:
     # ============================================
     
     def crear_pedido(self, carrito_id: int, cliente_id: str, usuario_id: str,
-                     subtotal: int, total: int, cantidad_items: int,
+                     subtotal: int = None, total: int = None, cantidad_items: int = None,
                      nombre_comprador: str = None, telefono: str = None,
-                     direccion: str = None) -> Optional[str]:
+                     telefono_contacto: str = None, direccion: str = None) -> Optional[str]:
         """Crea un nuevo pedido desde un carrito"""
         session = self._get_session()
         try:
             # Generar número de orden
             numero_orden = f"ORD-{datetime.now().strftime('%Y%m%d')}-{carrito_id}"
             
+            # Usar telefono_contacto si se proporciona, sino telefono
+            telefono_final = telefono_contacto if telefono_contacto else telefono
+            
             pedido = Pedido(
                 numero_orden=numero_orden,
                 cliente_id=cliente_id,
                 usuario_id=usuario_id,
                 carrito_id=carrito_id,
-                subtotal=subtotal,
-                total=total,
-                cantidad_items=cantidad_items,
+                subtotal=subtotal or 0,
+                total=total or 0,
+                cantidad_items=cantidad_items or 0,
                 nombre_comprador=nombre_comprador,
-                telefono_contacto=telefono,
+                telefono_contacto=telefono_final,
                 direccion_entrega=direccion,
                 estado='confirmado',
                 confirmado_en=datetime.now()

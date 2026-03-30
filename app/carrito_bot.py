@@ -106,7 +106,8 @@ class CarritoBot:
             cantidad=cantidad_num,
             medidas=medidas,
             area=area_cm2,
-            precio_unitario=precio_unitario
+            precio_unitario=precio_unitario,
+            subtotal=total
         )
         
         # Generar mensaje de confirmación
