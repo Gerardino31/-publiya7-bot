@@ -55,27 +55,41 @@ def obtener_estadisticas():
     }
     
     try:
-        from database.database_saas import db_saas
+        from database.database_saas import db_saas, USE_POSTGRES
         conn = db_saas._get_connection()
         cursor = conn.cursor()
         
         # Total pedidos y ventas
         cursor.execute("SELECT COUNT(*) as total, COALESCE(SUM(total), 0) as ventas FROM pedidos")
         row = cursor.fetchone()
-        stats['total_pedidos'] = row['total'] or 0
-        stats['total_ventas'] = row['ventas'] or 0
+        # Manejar tanto dict (SQLite) como tuple (PostgreSQL)
+        if isinstance(row, tuple):
+            stats['total_pedidos'] = row[0] or 0
+            stats['total_ventas'] = row[1] or 0
+        else:
+            stats['total_pedidos'] = row['total'] or 0
+            stats['total_ventas'] = row['ventas'] or 0
         
         # Pedidos y ventas de hoy
-        from datetime import datetime
-        hoy = datetime.now().strftime('%Y-%m-%d')
-        cursor.execute("""
-            SELECT COUNT(*) as total, COALESCE(SUM(total), 0) as ventas 
-            FROM pedidos 
-            WHERE date(creado_en) = date('now')
-        """)
+        if USE_POSTGRES:
+            cursor.execute("""
+                SELECT COUNT(*) as total, COALESCE(SUM(total), 0) as ventas 
+                FROM pedidos 
+                WHERE DATE(creado_en) = CURRENT_DATE
+            """)
+        else:
+            cursor.execute("""
+                SELECT COUNT(*) as total, COALESCE(SUM(total), 0) as ventas 
+                FROM pedidos 
+                WHERE date(creado_en) = date('now')
+            """)
         row = cursor.fetchone()
-        stats['pedidos_hoy'] = row['total'] or 0
-        stats['ventas_hoy'] = row['ventas'] or 0
+        if isinstance(row, tuple):
+            stats['pedidos_hoy'] = row[0] or 0
+            stats['ventas_hoy'] = row[1] or 0
+        else:
+            stats['pedidos_hoy'] = row['total'] or 0
+            stats['ventas_hoy'] = row['ventas'] or 0
         
         conn.close()
     except Exception as e:
@@ -951,27 +965,39 @@ async def ver_pedidos():
     # Obtener pedidos de la base de datos
     pedidos = []
     try:
-        from database.database_saas import db_saas
+        from database.database_saas import db_saas, USE_POSTGRES
         conn = db_saas._get_connection()
         cursor = conn.cursor()
         
+        # Nota: La tabla clientes no existe en el schema actual, simplificamos la query
         cursor.execute("""
-            SELECT p.*, c.nombre as cliente_nombre 
-            FROM pedidos p
-            LEFT JOIN clientes c ON p.cliente_id = c.cliente_id
-            ORDER BY p.creado_en DESC
+            SELECT id, numero_orden, cliente_id, usuario_id, total, estado, creado_en
+            FROM pedidos
+            ORDER BY creado_en DESC
         """)
         
         for row in cursor.fetchall():
-            pedidos.append({
-                'id': row['id'],
-                'numero_orden': row['numero_orden'],
-                'cliente_id': row['cliente_id'],
-                'cliente_nombre': row['cliente_nombre'] or row['cliente_id'],
-                'total': row['total'],
-                'estado': row['estado'],
-                'creado_en': row['creado_en']
-            })
+            # Manejar tanto tuple (PostgreSQL) como dict (SQLite)
+            if isinstance(row, tuple):
+                pedidos.append({
+                    'id': row[0],
+                    'numero_orden': row[1],
+                    'cliente_id': row[2],
+                    'cliente_nombre': row[2],  # Usamos cliente_id como nombre por ahora
+                    'total': row[4],
+                    'estado': row[5],
+                    'creado_en': row[6]
+                })
+            else:
+                pedidos.append({
+                    'id': row['id'],
+                    'numero_orden': row['numero_orden'],
+                    'cliente_id': row['cliente_id'],
+                    'cliente_nombre': row['cliente_id'],  # Simplificado
+                    'total': row['total'],
+                    'estado': row['estado'],
+                    'creado_en': row['creado_en']
+                })
         
         conn.close()
     except Exception as e:
@@ -1062,36 +1088,55 @@ async def ver_pedido_detalle(pedido_id: int):
     """Muestra el detalle completo de un pedido"""
     
     try:
-        from database.database_saas import db_saas
+        from database.database_saas import db_saas, USE_POSTGRES
         conn = db_saas._get_connection()
         cursor = conn.cursor()
         
-        # Obtener información del pedido
-        cursor.execute("""
-            SELECT p.*, c.nombre as cliente_nombre, c.telefono as cliente_telefono, c.email as cliente_email
-            FROM pedidos p
-            LEFT JOIN clientes c ON p.cliente_id = c.cliente_id
-            WHERE p.id = ?
+        ph = "%s" if USE_POSTGRES else "?"
+        
+        # Obtener información del pedido (simplificado sin JOIN a clientes)
+        cursor.execute(f"""
+            SELECT id, numero_orden, cliente_id, usuario_id, total, estado, creado_en,
+                   nombre_comprador, telefono_contacto, email_contacto, direccion_entrega
+            FROM pedidos
+            WHERE id = {ph}
         """, (pedido_id,))
         
-        pedido = cursor.fetchone()
-        if not pedido:
+        row = cursor.fetchone()
+        if not row:
             conn.close()
             return HTMLResponse(content="<h1>Pedido no encontrado</h1><a href='/admin/pedidos'>Volver</a>")
         
-        # Convertir sqlite3.Row a dict
-        pedido = dict(pedido)
+        # Convertir a dict (manejar tuple o dict)
+        if isinstance(row, tuple):
+            pedido = {
+                'id': row[0], 'numero_orden': row[1], 'cliente_id': row[2], 'usuario_id': row[3],
+                'total': row[4], 'estado': row[5], 'creado_en': row[6],
+                'nombre_comprador': row[7], 'telefono_contacto': row[8], 'email_contacto': row[9], 'direccion_entrega': row[10],
+                'cliente_nombre': row[2]  # Usamos cliente_id como nombre
+            }
+        else:
+            pedido = dict(row)
+            pedido['cliente_nombre'] = pedido.get('cliente_id', '')
         
         # Obtener items del pedido
-        cursor.execute("""
-            SELECT * FROM pedido_items WHERE pedido_id = ?
+        cursor.execute(f"""
+            SELECT * FROM pedido_items WHERE pedido_id = {ph}
         """, (pedido_id,))
         
-        items = cursor.fetchall()
+        rows = cursor.fetchall()
         conn.close()
         
         # Convertir items a dict
-        items = [dict(item) for item in items]
+        items = []
+        for row in rows:
+            if isinstance(row, tuple):
+                items.append({
+                    'nombre_producto': row[3], 'cantidad': row[4], 'medidas': row[5],
+                    'precio_unitario': row[6], 'subtotal': row[7]
+                })
+            else:
+                items.append(dict(row))
         
         # Generar filas de productos
         filas_items = ""
@@ -2145,20 +2190,20 @@ async def ver_comprobante_detalle(cliente_id: str, comprobante_id: int):
                 
                 <div class="card">
                     <h3>✅ Verificación</h3>
-                    <form method="POST" action="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes/{comprobante_id}/verificar" onsubmit="disableButtons();">
-                        <input type="hidden" name="estado" id="estadoInput" value="">
-                        <button type="submit" class="btn btn-success" id="btnAprobar" onclick="document.getElementById('estadoInput').value='verificado';">
+                    <form method="POST" action="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes/{comprobante_id}/verificar" onsubmit="return disableButtons(this);">
+                        <button type="submit" name="estado" value="verificado" class="btn btn-success" id="btnAprobar">
                             ✅ Aprobar Pago
                         </button>
-                        <button type="submit" class="btn btn-danger" id="btnRechazar" onclick="document.getElementById('estadoInput').value='rechazado';">
+                        <button type="submit" name="estado" value="rechazado" class="btn btn-danger" id="btnRechazar">
                             ❌ Rechazar
                         </button>
                     </form>
                     <script>
-                        function disableButtons() {{
+                        function disableButtons(form) {{
                             document.getElementById('btnAprobar').disabled = true;
                             document.getElementById('btnRechazar').disabled = true;
                             document.getElementById('btnAprobar').innerText = '⏳ Procesando...';
+                            return true;
                         }}
                     </script>
                 </div>
