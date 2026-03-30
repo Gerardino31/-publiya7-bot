@@ -416,6 +416,8 @@ class DatabaseSaaS:
                 """, (numero_orden, cliente_id, usuario_id, carrito_id,
                       subtotal or 0, total or 0, cantidad_items or 0,
                       nombre_comprador, telefono_final, direccion))
+                conn.commit()  # Commit inmediato para obtener el ID
+                pedido_id = cursor.fetchone()[0]
             else:
                 cursor.execute(f"""
                     INSERT INTO pedidos (numero_orden, cliente_id, usuario_id, carrito_id, 
@@ -425,14 +427,15 @@ class DatabaseSaaS:
                 """, (numero_orden, cliente_id, usuario_id, carrito_id,
                       subtotal or 0, total or 0, cantidad_items or 0,
                       nombre_comprador, telefono_final, direccion))
+                pedido_id = cursor.lastrowid
             
-            # Copiar items
+            # Copiar items con el pedido_id correcto
             items = self.obtener_items_carrito(carrito_id)
             for item in items:
                 cursor.execute(f"""
                     INSERT INTO pedido_items (pedido_id, producto_id, nombre_producto, cantidad, precio_unitario, subtotal)
                     VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph})
-                """, (carrito_id, item['producto_id'], item['nombre_producto'],
+                """, (pedido_id, item['producto_id'], item['nombre_producto'],
                       item['cantidad'], item['precio_unitario'], item['subtotal']))
             
             self.limpiar_carrito(carrito_id)
