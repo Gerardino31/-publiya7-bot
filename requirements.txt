@@ -2,6 +2,8 @@
 
 # Base de datos
 # (SQLite viene incluido en Python)
+psycopg2-binary>=2.9.9  # PostgreSQL para producción
+sqlalchemy>=2.0.0  # ORM para SQLite y PostgreSQL
 
 # Servidor web
 fastapi>=0.104.0

@@ -1,95 +1,204 @@
 """
-database_saas.py - Base de datos BotlyPro SaaS
-Gestiona carritos, pedidos y productos multi-cliente
+database_saas.py - Base de datos BotlyPro SaaS con SQLAlchemy
+Soporta SQLite (local) y PostgreSQL (producción) automáticamente
 """
 
-import sqlite3
+import os
 import json
-import sys
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Optional, Dict, List, Any
+
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Boolean, ForeignKey, UniqueConstraint
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.pool import NullPool
+
+# Detectar tipo de base de datos
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    # Producción: PostgreSQL
+    print(f"[DB] Usando PostgreSQL")
+    engine = create_engine(DATABASE_URL, poolclass=NullPool)
+else:
+    # Desarrollo: SQLite
+    disk_path = os.environ.get('DISK_PATH', '/data')
+    db_path = os.path.join(disk_path, "botlypro_saas.db")
+    print(f"[DB] Usando SQLite: {db_path}")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+Base = declarative_base()
+Session = sessionmaker(bind=engine)
+
+# ============================================
+# MODELOS
+# ============================================
+
+class Cliente(Base):
+    __tablename__ = 'clientes'
+    
+    id = Column(Integer, primary_key=True)
+    cliente_id = Column(String(50), unique=True, nullable=False)
+    nombre = Column(String(200), nullable=False)
+    eslogan = Column(Text)
+    nit = Column(String(50))
+    telefono = Column(String(50), nullable=False)
+    whatsapp = Column(String(50))
+    email = Column(String(200))
+    direccion = Column(Text)
+    ciudad = Column(String(100))
+    departamento = Column(String(100))
+    pais = Column(String(50), default='Colombia')
+    config_json = Column(Text)
+    estado = Column(String(50), default='activo')
+    plan = Column(String(50), default='basico')
+    fecha_registro = Column(DateTime, default=datetime.now)
+    fecha_ultima_actividad = Column(DateTime)
+    fecha_expiracion = Column(DateTime)
+    notificar_whatsapp = Column(Boolean, default=True)
+    notificar_email = Column(Boolean, default=False)
+    email_notificaciones = Column(String(200))
+    telefono_notificaciones = Column(String(50))
+    etiquetas = Column(Text)
+    notas = Column(Text)
+    limite_mensajes_mes = Column(Integer, default=1000)
+    limite_productos = Column(Integer, default=50)
+    limite_pedidos_mes = Column(Integer, default=100)
+
+class Carrito(Base):
+    __tablename__ = 'carritos'
+    
+    id = Column(Integer, primary_key=True)
+    cliente_id = Column(String(50), nullable=False)
+    usuario_id = Column(String(100), nullable=False)
+    estado = Column(String(50), default='activo')
+    total = Column(Integer, default=0)
+    cantidad_items = Column(Integer, default=0)
+    expira_en = Column(DateTime)
+    creado_en = Column(DateTime, default=datetime.now)
+    
+    items = relationship("CarritoItem", back_populates="carrito", cascade="all, delete-orphan")
+
+class CarritoItem(Base):
+    __tablename__ = 'carrito_items'
+    
+    id = Column(Integer, primary_key=True)
+    carrito_id = Column(Integer, ForeignKey('carritos.id', ondelete='CASCADE'))
+    producto_id = Column(String(100))
+    nombre_producto = Column(String(200))
+    cantidad = Column(String(50))
+    precio_unitario = Column(Integer)
+    subtotal = Column(Integer)
+    agregado_en = Column(DateTime, default=datetime.now)
+    
+    carrito = relationship("Carrito", back_populates="items")
+
+class Pedido(Base):
+    __tablename__ = 'pedidos'
+    
+    id = Column(Integer, primary_key=True)
+    numero_orden = Column(String(50), unique=True, nullable=False)
+    cliente_id = Column(String(50), nullable=False)
+    usuario_id = Column(String(100), nullable=False)
+    carrito_id = Column(Integer)
+    subtotal = Column(Integer, nullable=False)
+    descuento = Column(Integer, default=0)
+    total = Column(Integer, nullable=False)
+    cantidad_items = Column(Integer)
+    estado = Column(String(50), default='pendiente')
+    nombre_comprador = Column(String(200))
+    telefono_contacto = Column(String(50))
+    email_contacto = Column(String(200))
+    direccion_entrega = Column(Text)
+    ciudad_entrega = Column(String(100))
+    metodo_pago = Column(String(50))
+    estado_pago = Column(String(50), default='pendiente')
+    notas_cliente = Column(Text)
+    notas_internas = Column(Text)
+    creado_en = Column(DateTime, default=datetime.now)
+    confirmado_en = Column(DateTime)
+    pagado_en = Column(DateTime)
+    enviado_en = Column(DateTime)
+    completado_en = Column(DateTime)
+    
+    items = relationship("PedidoItem", back_populates="pedido", cascade="all, delete-orphan")
+
+class PedidoItem(Base):
+    __tablename__ = 'pedido_items'
+    
+    id = Column(Integer, primary_key=True)
+    pedido_id = Column(Integer, ForeignKey('pedidos.id', ondelete='CASCADE'))
+    producto_id = Column(String(100))
+    nombre_producto = Column(String(200))
+    cantidad = Column(String(50))
+    medidas = Column(String(50))
+    precio_unitario = Column(Integer)
+    subtotal = Column(Integer)
+    
+    pedido = relationship("Pedido", back_populates="items")
+
+class EstadoUsuario(Base):
+    __tablename__ = 'estado_usuario'
+    
+    id = Column(Integer, primary_key=True)
+    cliente_id = Column(String(50), nullable=False)
+    usuario_id = Column(String(100), nullable=False)
+    paso = Column(Integer, default=0)
+    categoria = Column(String(100))
+    producto = Column(Integer)
+    cantidad = Column(String(50))
+    total = Column(Integer, default=0)
+    datos_extra = Column(Text)
+    carrito_id = Column(Integer)
+    actualizado_en = Column(DateTime, default=datetime.now)
+    
+    __table_args__ = (UniqueConstraint('cliente_id', 'usuario_id'),)
+
+class Conversacion(Base):
+    __tablename__ = 'conversaciones'
+    
+    id = Column(Integer, primary_key=True)
+    cliente_id = Column(String(50))
+    user_id = Column(String(100))
+    mensaje = Column(Text)
+    respuesta = Column(Text)
+    tipo = Column(String(50))
+    fecha = Column(DateTime, default=datetime.now)
+
+class ComprobantePago(Base):
+    __tablename__ = 'comprobantes_pago'
+    
+    id = Column(Integer, primary_key=True)
+    cliente_id = Column(String(50), nullable=False)
+    user_id = Column(String(100), nullable=False)
+    pedido_id = Column(String(50), nullable=False)
+    imagen_data = Column(Text)
+    estado = Column(String(50), default='pendiente')
+    fecha_envio = Column(DateTime, default=datetime.now)
+    verificado_por = Column(String(100))
+    fecha_verificacion = Column(DateTime)
+
+# ============================================
+# INICIALIZACIÓN
+# ============================================
+
+print("[DB] Creando tablas...")
+Base.metadata.create_all(engine)
+print("✅ Base de datos inicializada")
+
+# ============================================
+# CLASE DATABASE SaaS
+# ============================================
 
 class DatabaseSaaS:
     """Base de datos para BotlyPro SaaS"""
     
-    def __init__(self, db_path: str = None):
-        import os
-        # Usar ruta del disk (siempre /data en Render)
-        if db_path is None:
-            disk_path = os.environ.get('DISK_PATH', '/data')
-            self.db_path = os.path.join(disk_path, "botlypro_saas.db")
-            print(f"[INFO] Usando base de datos en: {self.db_path}")
-        else:
-            self.db_path = db_path
-        self.init_database()
+    def __init__(self):
+        self.session = Session()
     
-    def _get_connection(self):
-        """Obtiene conexión a la base de datos con timeout"""
-        conn = sqlite3.connect(self.db_path, timeout=20.0)
-        conn.row_factory = sqlite3.Row
-        return conn
-    
-    def init_database(self):
-        """Inicializa todas las tablas"""
-        schema_path = Path(__file__).parent / "schema_saas_pro.sql"
-        
-        print(f"[DB DEBUG] Buscando schema en: {schema_path}")
-        print(f"[DB DEBUG] Directorio actual: {Path(__file__).parent}")
-        print(f"[DB DEBUG] Archivos en directorio: {list(Path(__file__).parent.glob('*.sql'))}")
-        
-        if not schema_path.exists():
-            print(f"[DB ERROR] Schema no encontrado: {schema_path}")
-            return
-        
-        try:
-            with open(schema_path, 'r', encoding='utf-8') as f:
-                schema = f.read()
-            
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            # Verificar si hay tablas con schema antiguo (sin usuario_id)
-            tablas_a_recrear = []
-            
-            # Verificar carritos
-            cursor.execute("PRAGMA table_info(carritos)")
-            columnas = cursor.fetchall()
-            if columnas and 'usuario_id' not in [col[1] for col in columnas]:
-                tablas_a_recrear.append('carritos')
-            
-            # Verificar pedidos
-            cursor.execute("PRAGMA table_info(pedidos)")
-            columnas = cursor.fetchall()
-            if columnas and 'usuario_id' not in [col[1] for col in columnas]:
-                tablas_a_recrear.append('pedidos')
-            
-            if tablas_a_recrear:
-                print(f"[DB WARNING] Schema antiguo detectado en: {tablas_a_recrear}, recreando tablas...")
-                # Eliminar tablas antiguas
-                cursor.execute("DROP TABLE IF EXISTS carritos")
-                cursor.execute("DROP TABLE IF EXISTS carrito_items")
-                cursor.execute("DROP TABLE IF EXISTS pedidos")
-                cursor.execute("DROP TABLE IF EXISTS pedido_items")
-                cursor.execute("DROP TABLE IF EXISTS estado_usuario")
-                cursor.execute("DROP TABLE IF EXISTS conversaciones")
-                cursor.execute("DROP TABLE IF EXISTS estado_conversacion")
-                conn.commit()
-                print("[DB] Tablas antiguas eliminadas")
-            
-            # Ejecutar schema completo
-            cursor.executescript(schema)
-            conn.commit()
-            conn.close()
-            print("✅ Base de datos SaaS inicializada correctamente")
-            
-        except sqlite3.OperationalError as e:
-            if "already exists" in str(e).lower():
-                print("✅ Base de datos ya existe")
-            else:
-                print(f"[DB ERROR] {e}")
-        except Exception as e:
-            print(f"[DB ERROR] {e}")
+    def _get_session(self):
+        """Obtiene una nueva sesión"""
+        return Session()
     
     # ============================================
     # CARRITOS
@@ -97,691 +206,395 @@ class DatabaseSaaS:
     
     def crear_carrito(self, cliente_id: str, usuario_id: str) -> int:
         """Crea un nuevo carrito para un usuario"""
+        session = self._get_session()
         try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            # Calcular expiración (30 minutos)
-            expira = datetime.now() + timedelta(minutes=30)
-            
-            cursor.execute("""
-                INSERT INTO carritos (cliente_id, usuario_id, expira_en)
-                VALUES (?, ?, ?)
-            """, (cliente_id, usuario_id, expira))
-            
-            carrito_id = cursor.lastrowid
-            conn.commit()
-            conn.close()
-            
+            carrito = Carrito(
+                cliente_id=cliente_id,
+                usuario_id=usuario_id,
+                expira_en=datetime.now() + timedelta(minutes=30)
+            )
+            session.add(carrito)
+            session.commit()
+            carrito_id = carrito.id
+            session.close()
             return carrito_id
-        except sqlite3.IntegrityError:
-            # El carrito ya existe, buscarlo directamente (sin recursión)
-            conn.close()
-            conn2 = self._get_connection()
-            cursor2 = conn2.cursor()
-            cursor2.execute("""
-                SELECT id FROM carritos 
-                WHERE cliente_id = ? AND usuario_id = ? 
-                AND estado = 'activo'
-                ORDER BY creado_en DESC LIMIT 1
-            """, (cliente_id, usuario_id))
-            row = cursor2.fetchone()
-            conn2.close()
-            return row['id'] if row else None
+        except Exception as e:
+            session.rollback()
+            session.close()
+            # Si ya existe, buscarlo
+            return self._buscar_carrito_existente(cliente_id, usuario_id)
+    
+    def _buscar_carrito_existente(self, cliente_id: str, usuario_id: str) -> Optional[int]:
+        """Busca un carrito existente"""
+        session = self._get_session()
+        carrito = session.query(Carrito).filter(
+            Carrito.cliente_id == cliente_id,
+            Carrito.usuario_id == usuario_id,
+            Carrito.estado == 'activo'
+        ).order_by(Carrito.creado_en.desc()).first()
+        session.close()
+        return carrito.id if carrito else None
     
     def obtener_carrito_activo(self, cliente_id: str, usuario_id: str) -> Optional[Dict]:
         """Obtiene el carrito activo de un usuario, o crea uno nuevo"""
+        session = self._get_session()
         try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
+            carrito = session.query(Carrito).filter(
+                Carrito.cliente_id == cliente_id,
+                Carrito.usuario_id == usuario_id,
+                Carrito.estado == 'activo'
+            ).order_by(Carrito.creado_en.desc()).first()
             
-            # Buscar carrito activo no expirado
-            cursor.execute("""
-                SELECT * FROM carritos 
-                WHERE cliente_id = ? AND usuario_id = ? 
-                AND estado = 'activo' 
-                AND (expira_en IS NULL OR expira_en > ?)
-                ORDER BY creado_en DESC LIMIT 1
-            """, (cliente_id, usuario_id, datetime.now()))
+            if carrito and (carrito.expira_en is None or carrito.expira_en > datetime.now()):
+                result = {
+                    'id': carrito.id,
+                    'cliente_id': carrito.cliente_id,
+                    'usuario_id': carrito.usuario_id,
+                    'estado': carrito.estado,
+                    'total': carrito.total,
+                    'cantidad_items': carrito.cantidad_items,
+                    'expira_en': carrito.expira_en,
+                    'creado_en': carrito.creado_en
+                }
+                session.close()
+                return result
             
-            row = cursor.fetchone()
-            conn.close()
-            
-            if row:
-                return dict(row)
+            session.close()
             
             # Si no hay carrito activo, crear uno nuevo
-            try:
-                carrito_id = self.crear_carrito(cliente_id, usuario_id)
-                if carrito_id:
-                    return self.obtener_carrito_por_id(carrito_id)
-            except Exception as e:
-                print(f"[DB WARNING] Error creando carrito: {e}")
+            carrito_id = self.crear_carrito(cliente_id, usuario_id)
+            return self.obtener_carrito_por_id(carrito_id) if carrito_id else None
             
-            return None
         except Exception as e:
+            session.close()
             print(f"[ERROR] obtener_carrito_activo: {e}")
             return None
     
     def obtener_carrito_por_id(self, carrito_id: int) -> Optional[Dict]:
         """Obtiene un carrito por su ID"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
+        session = self._get_session()
+        carrito = session.query(Carrito).filter(Carrito.id == carrito_id).first()
+        session.close()
         
-        cursor.execute("SELECT * FROM carritos WHERE id = ?", (carrito_id,))
-        row = cursor.fetchone()
-        conn.close()
-        
-        return dict(row) if row else None
+        if carrito:
+            return {
+                'id': carrito.id,
+                'cliente_id': carrito.cliente_id,
+                'usuario_id': carrito.usuario_id,
+                'estado': carrito.estado,
+                'total': carrito.total,
+                'cantidad_items': carrito.cantidad_items,
+                'expira_en': carrito.expira_en,
+                'creado_en': carrito.creado_en
+            }
+        return None
     
     def agregar_item_carrito(self, carrito_id: int, producto: Dict, 
-                            cantidad: int = None, medidas: str = None, 
-                            area: int = None, precio_unitario: int = None) -> bool:
+                            cantidad: str, precio_unitario: int, subtotal: int) -> bool:
         """Agrega un item al carrito"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        # Calcular subtotal
-        if cantidad and precio_unitario:
-            subtotal = cantidad * precio_unitario
-        elif area and precio_unitario:
-            subtotal = int(area * precio_unitario)
-        else:
-            subtotal = 0
-        
-        cursor.execute("""
-            INSERT INTO carrito_items 
-            (carrito_id, producto_id, categoria_id, prod_id, nombre_producto,
-             cantidad, medidas, area, precio_unitario, subtotal)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            carrito_id,
-            producto.get('id'),
-            producto.get('categoria_id'),
-            producto.get('prod_id'),
-            producto.get('nombre'),
-            cantidad,
-            medidas,
-            area,
-            precio_unitario,
-            subtotal
-        ))
-        
-        # Actualizar totales del carrito
-        self._actualizar_totales_carrito(carrito_id, conn)
-        
-        conn.commit()
-        conn.close()
-        
-        return True
-    
-    def _actualizar_totales_carrito(self, carrito_id: int, conn):
-        """Actualiza los totales del carrito"""
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT COUNT(*) as items, SUM(subtotal) as total 
-            FROM carrito_items 
-            WHERE carrito_id = ?
-        """, (carrito_id,))
-        
-        row = cursor.fetchone()
-        cantidad_items = row['items'] or 0
-        total = row['total'] or 0
-        
-        cursor.execute("""
-            UPDATE carritos 
-            SET cantidad_items = ?, total = ?, actualizado_en = ?
-            WHERE id = ?
-        """, (cantidad_items, total, datetime.now(), carrito_id))
+        session = self._get_session()
+        try:
+            item = CarritoItem(
+                carrito_id=carrito_id,
+                producto_id=producto.get('id'),
+                nombre_producto=producto.get('nombre'),
+                cantidad=cantidad,
+                precio_unitario=precio_unitario,
+                subtotal=subtotal
+            )
+            session.add(item)
+            
+            # Actualizar totales del carrito
+            carrito = session.query(Carrito).filter(Carrito.id == carrito_id).first()
+            if carrito:
+                carrito.total = (carrito.total or 0) + subtotal
+                carrito.cantidad_items = (carrito.cantidad_items or 0) + 1
+            
+            session.commit()
+            session.close()
+            return True
+        except Exception as e:
+            session.rollback()
+            session.close()
+            print(f"[ERROR] agregar_item_carrito: {e}")
+            return False
     
     def obtener_items_carrito(self, carrito_id: int) -> List[Dict]:
-        """Obtiene todos los items de un carrito"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
+        """Obtiene los items de un carrito"""
+        session = self._get_session()
+        items = session.query(CarritoItem).filter(CarritoItem.carrito_id == carrito_id).all()
+        session.close()
         
-        cursor.execute("""
-            SELECT * FROM carrito_items 
-            WHERE carrito_id = ?
-            ORDER BY agregado_en DESC
-        """, (carrito_id,))
-        
-        items = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-        
-        return items
+        return [{
+            'id': item.id,
+            'producto_id': item.producto_id,
+            'nombre_producto': item.nombre_producto,
+            'cantidad': item.cantidad,
+            'precio_unitario': item.precio_unitario,
+            'subtotal': item.subtotal
+        } for item in items]
     
     def limpiar_carrito(self, carrito_id: int) -> bool:
         """Limpia todos los items de un carrito"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("DELETE FROM carrito_items WHERE carrito_id = ?", (carrito_id,))
-        
-        # Resetear totales
-        cursor.execute("""
-            UPDATE carritos 
-            SET cantidad_items = 0, total = 0, actualizado_en = ?
-            WHERE id = ?
-        """, (datetime.now(), carrito_id))
-        
-        conn.commit()
-        conn.close()
-        
-        return True
+        session = self._get_session()
+        try:
+            session.query(CarritoItem).filter(CarritoItem.carrito_id == carrito_id).delete()
+            carrito = session.query(Carrito).filter(Carrito.id == carrito_id).first()
+            if carrito:
+                carrito.total = 0
+                carrito.cantidad_items = 0
+            session.commit()
+            session.close()
+            return True
+        except Exception as e:
+            session.rollback()
+            session.close()
+            print(f"[ERROR] limpiar_carrito: {e}")
+            return False
     
     # ============================================
     # PEDIDOS
     # ============================================
     
     def crear_pedido(self, carrito_id: int, cliente_id: str, usuario_id: str,
-                     nombre_comprador: str = None, telefono_contacto: str = None,
-                     direccion_entrega: str = None) -> Optional[str]:
-        """Convierte un carrito en pedido"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        # Obtener items del carrito
-        items = self.obtener_items_carrito(carrito_id)
-        if not items:
-            conn.close()
+                     subtotal: int, total: int, cantidad_items: int,
+                     nombre_comprador: str = None, telefono: str = None,
+                     direccion: str = None) -> Optional[str]:
+        """Crea un nuevo pedido desde un carrito"""
+        session = self._get_session()
+        try:
+            # Generar número de orden
+            numero_orden = f"ORD-{datetime.now().strftime('%Y%m%d')}-{carrito_id}"
+            
+            pedido = Pedido(
+                numero_orden=numero_orden,
+                cliente_id=cliente_id,
+                usuario_id=usuario_id,
+                carrito_id=carrito_id,
+                subtotal=subtotal,
+                total=total,
+                cantidad_items=cantidad_items,
+                nombre_comprador=nombre_comprador,
+                telefono_contacto=telefono,
+                direccion_entrega=direccion,
+                estado='confirmado',
+                confirmado_en=datetime.now()
+            )
+            session.add(pedido)
+            session.commit()
+            
+            # Copiar items del carrito al pedido
+            items_carrito = session.query(CarritoItem).filter(CarritoItem.carrito_id == carrito_id).all()
+            for item in items_carrito:
+                pedido_item = PedidoItem(
+                    pedido_id=pedido.id,
+                    producto_id=item.producto_id,
+                    nombre_producto=item.nombre_producto,
+                    cantidad=item.cantidad,
+                    precio_unitario=item.precio_unitario,
+                    subtotal=item.subtotal
+                )
+                session.add(pedido_item)
+            
+            # Limpiar carrito
+            self.limpiar_carrito(carrito_id)
+            
+            session.commit()
+            session.close()
+            return numero_orden
+            
+        except Exception as e:
+            session.rollback()
+            session.close()
+            print(f"[ERROR] crear_pedido: {e}")
             return None
-        
-        # Calcular totales
-        total = sum(item['subtotal'] for item in items)
-        cantidad_items = len(items)
-        
-        # Generar número de orden
-        numero_orden = f"ORD-{datetime.now().strftime('%Y%m%d')}-{carrito_id:04d}"
-        
-        # Crear pedido
-        cursor.execute("""
-            INSERT INTO pedidos 
-            (numero_orden, cliente_id, usuario_id, carrito_id, subtotal, total,
-             cantidad_items, nombre_comprador, telefono_contacto, direccion_entrega,
-             estado, confirmado_en)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmado', ?)
-        """, (numero_orden, cliente_id, usuario_id, carrito_id, total, total,
-              cantidad_items, nombre_comprador, telefono_contacto, direccion_entrega,
-              datetime.now()))
-        
-        pedido_id = cursor.lastrowid
-        
-        # Copiar items al pedido
-        for item in items:
-            cursor.execute("""
-                INSERT INTO pedido_items
-                (pedido_id, producto_id, categoria_id, prod_id, nombre_producto,
-                 cantidad, medidas, area, precio_unitario, subtotal)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (pedido_id, item['producto_id'], item['categoria_id'], 
-                  item['prod_id'], item['nombre_producto'], item['cantidad'],
-                  item['medidas'], item['area'], item['precio_unitario'], 
-                  item['subtotal']))
-        
-        # Marcar carrito como completado
-        cursor.execute("""
-            UPDATE carritos 
-            SET estado = 'completado', actualizado_en = ?
-            WHERE id = ?
-        """, (datetime.now(), carrito_id))
-        
-        conn.commit()
-        conn.close()
-        
-        return numero_orden
     
     def obtener_pedido(self, numero_orden: str) -> Optional[Dict]:
-        """Obtiene un pedido por su número"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
+        """Obtiene un pedido por su número de orden"""
+        session = self._get_session()
+        pedido = session.query(Pedido).filter(Pedido.numero_orden == numero_orden).first()
+        session.close()
         
-        cursor.execute("SELECT * FROM pedidos WHERE numero_orden = ?", (numero_orden,))
-        row = cursor.fetchone()
-        conn.close()
-        
-        return dict(row) if row else None
+        if pedido:
+            return {
+                'id': pedido.id,
+                'numero_orden': pedido.numero_orden,
+                'cliente_id': pedido.cliente_id,
+                'usuario_id': pedido.usuario_id,
+                'total': pedido.total,
+                'estado': pedido.estado,
+                'creado_en': pedido.creado_en
+            }
+        return None
     
     # ============================================
-    # PRODUCTOS
+    # ESTADO DE USUARIO
     # ============================================
     
-    def obtener_producto(self, cliente_id: str, categoria_id: str, prod_id: str) -> Optional[Dict]:
-        """Obtiene un producto específico"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT * FROM productos 
-            WHERE cliente_id = ? AND categoria_id = ? AND prod_id = ? AND activo = 1
-        """, (cliente_id, categoria_id, prod_id))
-        
-        row = cursor.fetchone()
-        conn.close()
-        
-        return dict(row) if row else None
-    
-    def listar_productos_categoria(self, cliente_id: str, categoria_id: str) -> List[Dict]:
-        """Lista todos los productos de una categoría"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT * FROM productos 
-            WHERE cliente_id = ? AND categoria_id = ? AND activo = 1
-            ORDER BY orden, nombre
-        """, (cliente_id, categoria_id))
-        
-        productos = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-        
-        return productos
-    
-    # ============================================
-    # ESTADO DE CONVERSACIÓN (migrado desde db.py)
-    # ============================================
-    
-    def guardar_estado(self, cliente_id: str, user_id: str, estado: Dict, _retry_count: int = 0) -> bool:
+    def guardar_estado(self, cliente_id: str, user_id: str, estado: Dict) -> bool:
         """Guarda el estado de una conversación"""
+        session = self._get_session()
         try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
+            estado_db = session.query(EstadoUsuario).filter(
+                EstadoUsuario.cliente_id == cliente_id,
+                EstadoUsuario.usuario_id == user_id
+            ).first()
             
-            # Crear tabla si no existe
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS estado_conversacion (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    cliente_id TEXT NOT NULL,
-                    user_id TEXT NOT NULL,
-                    paso INTEGER DEFAULT 0,
-                    categoria TEXT,
-                    producto INTEGER,
-                    cantidad TEXT,
-                    total INTEGER DEFAULT 0,
-                    datos_extra TEXT,
-                    actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(cliente_id, user_id)
+            if estado_db:
+                estado_db.paso = estado.get('paso', 0)
+                estado_db.categoria = estado.get('categoria')
+                estado_db.producto = estado.get('producto')
+                estado_db.cantidad = str(estado.get('cantidad')) if estado.get('cantidad') else None
+                estado_db.total = estado.get('total', 0)
+                estado_db.datos_extra = json.dumps(estado.get('datos_extra', {}))
+                estado_db.actualizado_en = datetime.now()
+            else:
+                estado_db = EstadoUsuario(
+                    cliente_id=cliente_id,
+                    usuario_id=user_id,
+                    paso=estado.get('paso', 0),
+                    categoria=estado.get('categoria'),
+                    producto=estado.get('producto'),
+                    cantidad=str(estado.get('cantidad')) if estado.get('cantidad') else None,
+                    total=estado.get('total', 0),
+                    datos_extra=json.dumps(estado.get('datos_extra', {}))
                 )
-            ''')
+                session.add(estado_db)
             
-            # Convertir datos extra a JSON
-            datos_extra = json.dumps(estado.get('datos_extra', {}))
-            cantidad = estado.get('cantidad')
-            if cantidad is not None:
-                cantidad = str(cantidad)
-            
-            cursor.execute('''
-                INSERT OR REPLACE INTO estado_conversacion 
-                (cliente_id, user_id, paso, categoria, producto, cantidad, total, datos_extra, actualizado_en)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                cliente_id,
-                user_id,
-                estado.get('paso', 0),
-                estado.get('categoria'),
-                estado.get('producto'),
-                cantidad,
-                estado.get('total', 0),
-                datos_extra,
-                datetime.now()
-            ))
-            
-            conn.commit()
-            conn.close()
+            session.commit()
+            session.close()
             return True
-        except sqlite3.OperationalError as e:
-            if "database is locked" in str(e) and _retry_count < 3:
-                print(f"[WARNING] Base de datos bloqueada, reintentando... ({_retry_count + 1}/3)")
-                import time
-                time.sleep(0.1 * (_retry_count + 1))
-                return self.guardar_estado(cliente_id, user_id, estado, _retry_count + 1)
-            print(f"[ERROR] guardar_estado: {e}")
-            return False
         except Exception as e:
+            session.rollback()
+            session.close()
             print(f"[ERROR] guardar_estado: {e}")
             return False
     
     def obtener_estado(self, cliente_id: str, user_id: str) -> Optional[Dict]:
         """Obtiene el estado de una conversación"""
-        try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            # Crear tabla si no existe
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS estado_conversacion (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    cliente_id TEXT NOT NULL,
-                    user_id TEXT NOT NULL,
-                    paso INTEGER DEFAULT 0,
-                    categoria TEXT,
-                    producto INTEGER,
-                    cantidad TEXT,
-                    total INTEGER DEFAULT 0,
-                    datos_extra TEXT,
-                    actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(cliente_id, user_id)
-                )
-            ''')
-            conn.commit()
-            
-            cursor.execute('''
-                SELECT * FROM estado_conversacion 
-                WHERE cliente_id = ? AND user_id = ?
-            ''', (cliente_id, user_id))
-            
-            row = cursor.fetchone()
-            conn.close()
-            
-            if row:
-                estado = dict(row)
-                # Parsear cantidad
-                try:
-                    estado['cantidad'] = int(estado['cantidad'])
-                except (ValueError, TypeError):
-                    pass
-                # Parsear datos extra
-                if estado.get('datos_extra'):
-                    try:
-                        estado['datos_extra'] = json.loads(estado['datos_extra'])
-                    except:
-                        estado['datos_extra'] = {}
-                return estado
-            return None
-        except Exception as e:
-            print(f"[ERROR] obtener_estado: {e}")
-            return None
+        session = self._get_session()
+        estado_db = session.query(EstadoUsuario).filter(
+            EstadoUsuario.cliente_id == cliente_id,
+            EstadoUsuario.usuario_id == user_id
+        ).first()
+        session.close()
+        
+        if estado_db:
+            return {
+                'paso': estado_db.paso,
+                'categoria': estado_db.categoria,
+                'producto': estado_db.producto,
+                'cantidad': estado_db.cantidad,
+                'total': estado_db.total,
+                'datos_extra': json.loads(estado_db.datos_extra) if estado_db.datos_extra else {}
+            }
+        return None
     
     def limpiar_estado(self, cliente_id: str, user_id: str) -> bool:
-        """Limpia el estado de una conversación"""
+        """Limpia el estado de un usuario"""
+        session = self._get_session()
         try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                DELETE FROM estado_conversacion 
-                WHERE cliente_id = ? AND user_id = ?
-            ''', (cliente_id, user_id))
-            
-            conn.commit()
-            conn.close()
+            session.query(EstadoUsuario).filter(
+                EstadoUsuario.cliente_id == cliente_id,
+                EstadoUsuario.usuario_id == user_id
+            ).delete()
+            session.commit()
+            session.close()
             return True
         except Exception as e:
+            session.rollback()
+            session.close()
             print(f"[ERROR] limpiar_estado: {e}")
             return False
     
-    def guardar_conversacion(self, cliente_id: str, user_id: str, mensaje: str, respuesta: str, tipo: str, _retry_count: int = 0) -> bool:
+    # ============================================
+    # CONVERSACIONES
+    # ============================================
+    
+    def guardar_conversacion(self, cliente_id: str, user_id: str, 
+                            mensaje: str, respuesta: str, tipo: str) -> bool:
         """Guarda un mensaje de conversación para auditoría"""
+        session = self._get_session()
         try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            # Verificar si tabla existe y tiene la columna user_id
-            cursor.execute("PRAGMA table_info(conversaciones)")
-            columnas = cursor.fetchall()
-            
-            if not columnas:
-                # Tabla no existe, crearla
-                cursor.execute('''
-                    CREATE TABLE conversaciones (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        cliente_id TEXT,
-                        user_id TEXT,
-                        mensaje TEXT,
-                        respuesta TEXT,
-                        tipo TEXT,
-                        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
-            else:
-                # Tabla existe, verificar si tiene user_id
-                nombres_columnas = [col[1] for col in columnas]
-                if 'user_id' not in nombres_columnas:
-                    # Backup de datos, recrear tabla
-                    cursor.execute('ALTER TABLE conversaciones RENAME TO conversaciones_old')
-                    cursor.execute('''
-                        CREATE TABLE conversaciones (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            cliente_id TEXT,
-                            user_id TEXT,
-                            mensaje TEXT,
-                            respuesta TEXT,
-                            tipo TEXT,
-                            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                        )
-                    ''')
-                    cursor.execute('DROP TABLE conversaciones_old')
-            
-            cursor.execute('''
-                INSERT INTO conversaciones (cliente_id, user_id, mensaje, respuesta, tipo)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (cliente_id, user_id, mensaje, respuesta, tipo))
-            
-            conn.commit()
-            conn.close()
+            conv = Conversacion(
+                cliente_id=cliente_id,
+                user_id=user_id,
+                mensaje=mensaje,
+                respuesta=respuesta,
+                tipo=tipo
+            )
+            session.add(conv)
+            session.commit()
+            session.close()
             return True
-        except sqlite3.OperationalError as e:
-            if "database is locked" in str(e) and _retry_count < 3:
-                print(f"[WARNING] Base de datos bloqueada, reintentando... ({_retry_count + 1}/3)")
-                import time
-                time.sleep(0.1 * (_retry_count + 1))
-                return self.guardar_conversacion(cliente_id, user_id, mensaje, respuesta, tipo, _retry_count + 1)
-            print(f"[ERROR] guardar_conversacion: {e}")
-            return False
         except Exception as e:
+            session.rollback()
+            session.close()
             print(f"[ERROR] guardar_conversacion: {e}")
             return False
     
     # ============================================
-    # MODO HUMANO (v2 - Asesor)
+    # COMPROBANTES DE PAGO
     # ============================================
     
-    def obtener_modo_usuario(self, cliente_id: str, user_id: str) -> str:
-        """Obtiene el modo actual del usuario (bot o humano)"""
+    def guardar_comprobante_pago(self, cliente_id: str, user_id: str, 
+                                  pedido_id: str, imagen_data: str) -> int:
+        """Guarda un comprobante de pago"""
+        session = self._get_session()
         try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            # Crear tabla si no existe
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS usuario_modo (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    cliente_id TEXT NOT NULL,
-                    user_id TEXT NOT NULL,
-                    modo TEXT DEFAULT 'bot',
-                    activado_por TEXT,
-                    fecha_cambio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(cliente_id, user_id)
-                )
-            ''')
-            conn.commit()
-            
-            cursor.execute('''
-                SELECT modo FROM usuario_modo 
-                WHERE cliente_id = ? AND user_id = ?
-            ''', (cliente_id, user_id))
-            
-            row = cursor.fetchone()
-            conn.close()
-            
-            return row['modo'] if row else 'bot'
-        except Exception as e:
-            print(f"[ERROR] obtener_modo_usuario: {e}")
-            return 'bot'
-    
-    def set_modo_usuario(self, cliente_id: str, user_id: str, modo: str, activado_por: str = 'sistema') -> bool:
-        """Cambia el modo del usuario (bot o humano)"""
-        try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            # Crear tabla si no existe
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS usuario_modo (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    cliente_id TEXT NOT NULL,
-                    user_id TEXT NOT NULL,
-                    modo TEXT DEFAULT 'bot',
-                    activado_por TEXT,
-                    fecha_cambio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(cliente_id, user_id)
-                )
-            ''')
-            conn.commit()
-            
-            cursor.execute('''
-                INSERT OR REPLACE INTO usuario_modo 
-                (cliente_id, user_id, modo, activado_por, fecha_cambio)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (cliente_id, user_id, modo, activado_por, datetime.now()))
-            
-            conn.commit()
-            conn.close()
-            print(f"✅ Modo cambiado a '{modo}' para {user_id}")
-            return True
-        except Exception as e:
-            print(f"[ERROR] set_modo_usuario: {e}")
-            return False
-    
-    def guardar_mensaje_asesor(self, cliente_id: str, user_id: str, mensaje: str, asesor: str) -> bool:
-        """Guarda mensaje enviado por asesor"""
-        try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            # Crear tabla
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS mensajes_asesor (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    cliente_id TEXT NOT NULL,
-                    user_id TEXT NOT NULL,
-                    mensaje TEXT,
-                    asesor TEXT,
-                    enviado BOOLEAN DEFAULT 0,
-                    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            
-            cursor.execute('''
-                INSERT INTO mensajes_asesor (cliente_id, user_id, mensaje, asesor)
-                VALUES (?, ?, ?, ?)
-            ''', (cliente_id, user_id, mensaje, asesor))
-            
-            conn.commit()
-            conn.close()
-            return True
-        except Exception as e:
-            print(f"[ERROR] guardar_mensaje_asesor: {e}")
-            return False
-    
-    def obtener_mensajes_pendientes_asesor(self, cliente_id: str, user_id: str) -> List[Dict]:
-        """Obtiene mensajes del asesor pendientes de enviar"""
-        try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT * FROM mensajes_asesor 
-                WHERE cliente_id = ? AND user_id = ? AND enviado = 0
-                ORDER BY fecha ASC
-            ''', (cliente_id, user_id))
-            
-            mensajes = [dict(row) for row in cursor.fetchall()]
-            
-            # Marcar como enviados
-            cursor.execute('''
-                UPDATE mensajes_asesor SET enviado = 1
-                WHERE cliente_id = ? AND user_id = ? AND enviado = 0
-            ''', (cliente_id, user_id))
-            
-            conn.commit()
-            conn.close()
-            return mensajes
-        except Exception as e:
-            print(f"[ERROR] obtener_mensajes_pendientes_asesor: {e}")
-            return []
-    
-    # ============================================
-    # VERIFICACIÓN DE PAGOS (v2)
-    # ============================================
-    
-    def guardar_comprobante_pago(self, cliente_id: str, user_id: str, pedido_id: str, 
-                                  imagen_data: bytes, content_type: str) -> int:
-        """Guarda comprobante de pago enviado por cliente"""
-        try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            # Crear tabla
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS comprobantes_pago (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    cliente_id TEXT NOT NULL,
-                    user_id TEXT NOT NULL,
-                    pedido_id TEXT NOT NULL,
-                    imagen_data BLOB,
-                    content_type TEXT,
-                    estado TEXT DEFAULT 'pendiente',
-                    verificado_por TEXT,
-                    fecha_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    fecha_verificacion TIMESTAMP
-                )
-            ''')
-            
-            cursor.execute('''
-                INSERT INTO comprobantes_pago 
-                (cliente_id, user_id, pedido_id, imagen_data, content_type)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (cliente_id, user_id, pedido_id, imagen_data, content_type))
-            
-            comprobante_id = cursor.lastrowid
-            conn.commit()
-            conn.close()
-            
-            print(f"✅ Comprobante guardado: ID {comprobante_id}")
+            comprobante = ComprobantePago(
+                cliente_id=cliente_id,
+                user_id=user_id,
+                pedido_id=pedido_id,
+                imagen_data=imagen_data
+            )
+            session.add(comprobante)
+            session.commit()
+            comprobante_id = comprobante.id
+            session.close()
             return comprobante_id
         except Exception as e:
+            session.rollback()
+            session.close()
             print(f"[ERROR] guardar_comprobante_pago: {e}")
             return 0
     
     def obtener_comprobantes_pendientes(self, cliente_id: str) -> List[Dict]:
         """Obtiene comprobantes pendientes de verificación"""
-        try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT * FROM comprobantes_pago 
-                WHERE cliente_id = ? AND estado = 'pendiente'
-                ORDER BY fecha_envio DESC
-            ''', (cliente_id,))
-            
-            comprobantes = [dict(row) for row in cursor.fetchall()]
-            conn.close()
-            return comprobantes
-        except Exception as e:
-            print(f"[ERROR] obtener_comprobantes_pendientes: {e}")
-            return []
+        session = self._get_session()
+        comprobantes = session.query(ComprobantePago).filter(
+            ComprobantePago.cliente_id == cliente_id,
+            ComprobantePago.estado == 'pendiente'
+        ).all()
+        session.close()
+        
+        return [{
+            'id': c.id,
+            'pedido_id': c.pedido_id,
+            'user_id': c.user_id,
+            'fecha_envio': c.fecha_envio
+        } for c in comprobantes]
     
-    def verificar_comprobante(self, comprobante_id: int, admin: str, 
-                              estado: str = 'verificado') -> bool:
-        """Marca comprobante como verificado"""
+    def verificar_comprobante(self, comprobante_id: int, admin: str, estado: str) -> bool:
+        """Marca un comprobante como verificado o rechazado"""
+        session = self._get_session()
         try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                UPDATE comprobantes_pago 
-                SET estado = ?, verificado_por = ?, fecha_verificacion = ?
-                WHERE id = ?
-            ''', (estado, admin, datetime.now(), comprobante_id))
-            
-            conn.commit()
-            conn.close()
-            return True
+            comprobante = session.query(ComprobantePago).filter(ComprobantePago.id == comprobante_id).first()
+            if comprobante:
+                comprobante.estado = estado
+                comprobante.verificado_por = admin
+                comprobante.fecha_verificacion = datetime.now()
+                session.commit()
+                session.close()
+                return True
+            session.close()
+            return False
         except Exception as e:
+            session.rollback()
+            session.close()
             print(f"[ERROR] verificar_comprobante: {e}")
             return False
+
 
 # Instancia global
 db_saas = DatabaseSaaS()
