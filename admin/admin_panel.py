@@ -1552,46 +1552,70 @@ def obtener_estadisticas_cliente(cliente_id: str) -> dict:
     }
     
     try:
-        from database.database_saas import db_saas
+        from database.database_saas import db_saas, USE_POSTGRES
         conn = db_saas._get_connection()
         cursor = conn.cursor()
+        ph = "%s" if USE_POSTGRES else "?"
         
         # Ventas totales y total pedidos
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT COUNT(*) as total, COALESCE(SUM(total), 0) as ventas,
                    COALESCE(AVG(total), 0) as promedio
-            FROM pedidos WHERE cliente_id = ?
+            FROM pedidos WHERE cliente_id = {ph}
         """, (cliente_id,))
         row = cursor.fetchone()
-        stats['total_pedidos'] = row['total'] or 0
-        stats['ventas_totales'] = int(row['ventas'] or 0)
-        stats['ticket_promedio'] = int(row['promedio'] or 0)
+        if isinstance(row, tuple):
+            stats['total_pedidos'] = row[0] or 0
+            stats['ventas_totales'] = int(row[1] or 0)
+            stats['ticket_promedio'] = int(row[2] or 0)
+        else:
+            stats['total_pedidos'] = row['total'] or 0
+            stats['ventas_totales'] = int(row['ventas'] or 0)
+            stats['ticket_promedio'] = int(row['promedio'] or 0)
         
         # Clientes únicos
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT COUNT(DISTINCT usuario_id) as unicos
-            FROM pedidos WHERE cliente_id = ?
+            FROM pedidos WHERE cliente_id = {ph}
         """, (cliente_id,))
-        stats['clientes_unicos'] = cursor.fetchone()['unicos'] or 0
+        row = cursor.fetchone()
+        if isinstance(row, tuple):
+            stats['clientes_unicos'] = row[0] or 0
+        else:
+            stats['clientes_unicos'] = row['unicos'] or 0
         
         # Últimos pedidos
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT numero_orden, total, estado, creado_en
-            FROM pedidos WHERE cliente_id = ?
+            FROM pedidos WHERE cliente_id = {ph}
             ORDER BY creado_en DESC LIMIT 10
         """, (cliente_id,))
-        stats['ultimos_pedidos'] = [dict(row) for row in cursor.fetchall()]
+        rows = cursor.fetchall()
+        stats['ultimos_pedidos'] = []
+        for row in rows:
+            if isinstance(row, tuple):
+                stats['ultimos_pedidos'].append({
+                    'numero_orden': row[0], 'total': row[1], 'estado': row[2], 'creado_en': row[3]
+                })
+            else:
+                stats['ultimos_pedidos'].append(dict(row))
         
         # Top productos
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT nombre_producto, COUNT(*) as cantidad
             FROM pedido_items pi
             JOIN pedidos p ON pi.pedido_id = p.id
-            WHERE p.cliente_id = ?
+            WHERE p.cliente_id = {ph}
             GROUP BY nombre_producto
             ORDER BY cantidad DESC LIMIT 5
         """, (cliente_id,))
-        stats['top_productos'] = [dict(row) for row in cursor.fetchall()]
+        rows = cursor.fetchall()
+        stats['top_productos'] = []
+        for row in rows:
+            if isinstance(row, tuple):
+                stats['top_productos'].append({'nombre_producto': row[0], 'cantidad': row[1]})
+            else:
+                stats['top_productos'].append(dict(row))
         
         conn.close()
     except Exception as e:
