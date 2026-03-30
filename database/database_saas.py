@@ -218,14 +218,14 @@ class DatabaseSaaS:
             expira = datetime.now() + timedelta(minutes=30)
             if USE_POSTGRES:
                 cursor.execute("""
-                    INSERT INTO carritos (cliente_id, usuario_id, expira_en)
-                    VALUES (%s, %s, %s) RETURNING id
+                    INSERT INTO carritos (cliente_id, usuario_id, estado, expira_en)
+                    VALUES (%s, %s, 'activo', %s) RETURNING id
                 """, (cliente_id, usuario_id, expira))
                 carrito_id = cursor.fetchone()[0]
             else:
                 cursor.execute("""
-                    INSERT INTO carritos (cliente_id, usuario_id, expira_en)
-                    VALUES (?, ?, ?)
+                    INSERT INTO carritos (cliente_id, usuario_id, estado, expira_en)
+                    VALUES (?, ?, 'activo', ?)
                 """, (cliente_id, usuario_id, expira))
                 carrito_id = cursor.lastrowid
             conn.commit()
@@ -324,6 +324,8 @@ class DatabaseSaaS:
             else:
                 cantidad_str = "1"
             
+            print(f"[DEBUG DB] Agregando item: carrito_id={carrito_id}, producto={producto.get('nombre')}, cantidad={cantidad_str}, subtotal={subtotal}")
+            
             ph = "%s" if USE_POSTGRES else "?"
             cursor.execute(f"""
                 INSERT INTO carrito_items (carrito_id, producto_id, nombre_producto, cantidad, precio_unitario, subtotal)
@@ -332,6 +334,8 @@ class DatabaseSaaS:
                   producto.get('nombre'), cantidad_str,
                   int(precio_unitario) if precio_unitario else 0,
                   int(subtotal) if subtotal else 0))
+            
+            print(f"[DEBUG DB] Item insertado, filas afectadas: {cursor.rowcount}")
             
             # Actualizar totales
             cursor.execute(f"""
