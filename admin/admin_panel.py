@@ -2145,14 +2145,22 @@ async def ver_comprobante_detalle(cliente_id: str, comprobante_id: int):
                 
                 <div class="card">
                     <h3>✅ Verificación</h3>
-                    <form method="POST" action="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes/{comprobante_id}/verificar">
-                        <button type="submit" name="estado" value="verificado" class="btn btn-success">
+                    <form method="POST" action="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes/{comprobante_id}/verificar" onsubmit="return disableButtons(this);">
+                        <button type="submit" name="estado" value="verificado" class="btn btn-success" id="btnAprobar">
                             ✅ Aprobar Pago
                         </button>
-                        <button type="submit" name="estado" value="rechazado" class="btn btn-danger">
+                        <button type="submit" name="estado" value="rechazado" class="btn btn-danger" id="btnRechazar">
                             ❌ Rechazar
                         </button>
                     </form>
+                    <script>
+                        function disableButtons(form) {{
+                            document.getElementById('btnAprobar').disabled = true;
+                            document.getElementById('btnRechazar').disabled = true;
+                            document.getElementById('btnAprobar').innerText = '⏳ Procesando...';
+                            return true;
+                        }}
+                    </script>
                 </div>
                 
                 <br>
@@ -2242,10 +2250,29 @@ async def ver_comprobante_proxy(comprobante_id: int):
     except Exception as e:
         return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
 
+# Diccionario para trackear comprobantes en proceso (evitar doble-submit)
+_comprobantes_en_proceso = {}
+
 @router.post("/cliente-dashboard/{cliente_id}/pagos-pendientes/{comprobante_id}/verificar")
 async def verificar_pago(cliente_id: str, comprobante_id: int, estado: str = Form(...)):
     """Marca el pago como verificado o rechazado y notifica al cliente"""
     try:
+        # Verificar si ya está en proceso (evitar doble-submit)
+        if comprobante_id in _comprobantes_en_proceso:
+            return HTMLResponse(content="""
+            <!DOCTYPE html>
+            <html>
+            <head><title>Procesando...</title><meta http-equiv="refresh" content="2;url=/admin/cliente-dashboard/" + cliente_id + "/pagos-pendientes"></head>
+            <body style="font-family: Arial; text-align: center; padding: 50px;">
+                <h1 style="color: #ecc94b;">⏳ Procesando...</h1>
+                <p>Este pago ya está siendo procesado. Por favor espera.</p>
+            </body>
+            </html>
+            """)
+        
+        # Marcar como en proceso
+        _comprobantes_en_proceso[comprobante_id] = True
+        
         sys.path.append(str(Path(__file__).parent.parent))
         from database.database_saas import db_saas
         import os
@@ -2253,8 +2280,26 @@ async def verificar_pago(cliente_id: str, comprobante_id: int, estado: str = For
         # Obtener info del comprobante
         conn = db_saas._get_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT user_id, pedido_id FROM comprobantes_pago WHERE id = ?', (comprobante_id,))
+        cursor.execute('SELECT user_id, pedido_id, estado FROM comprobantes_pago WHERE id = ?', (comprobante_id,))
         row = cursor.fetchone()
+        
+        # Verificar si ya fue procesado
+        if row and row['estado'] != 'pendiente':
+            conn.close()
+            del _comprobantes_en_proceso[comprobante_id]
+            return HTMLResponse(content=f"""
+            <!DOCTYPE html>
+            <html>
+            <head><title>Ya Procesado</title></head>
+            <body style="font-family: Arial; text-align: center; padding: 50px;">
+                <h1 style="color: #48bb78;">✅ Ya Procesado</h1>
+                <p>Este pago ya fue {row['estado']} anteriormente.</p>
+                <br>
+                <a href="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Volver a Pagos</a>
+            </body>
+            </html>
+            """)
+        
         conn.close()
         
         if not row:
@@ -2357,6 +2402,10 @@ Pronto comenzaremos con la producción. 🚀
             mensaje = "❌ Pago rechazado"
             color = "#f56565"
         
+        # Limpiar del diccionario de procesos
+        if comprobante_id in _comprobantes_en_proceso:
+            del _comprobantes_en_proceso[comprobante_id]
+        
         return HTMLResponse(content=f"""
         <!DOCTYPE html>
         <html>
@@ -2369,6 +2418,9 @@ Pronto comenzaremos con la producción. 🚀
         </html>
         """)
     except Exception as e:
+        # Limpiar en caso de error
+        if comprobante_id in _comprobantes_en_proceso:
+            del _comprobantes_en_proceso[comprobante_id]
         return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
 
 @router.get("/cliente-dashboard/{cliente_id}/manual")

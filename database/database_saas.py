@@ -33,27 +33,31 @@ class DatabaseSaaS:
     def init_database(self):
         """Inicializa todas las tablas"""
         schema_path = Path(__file__).parent / "schema_saas_pro.sql"
-        if schema_path.exists():
+        
+        if not schema_path.exists():
+            print(f"[DB ERROR] Schema no encontrado: {schema_path}")
+            return
+        
+        try:
             with open(schema_path, 'r', encoding='utf-8') as f:
                 schema = f.read()
             
             conn = self._get_connection()
             cursor = conn.cursor()
             
-            # Ejecutar schema completo (maneja IF NOT EXISTS internamente)
-            try:
-                cursor.executescript(schema)
-                print("✅ Base de datos SaaS inicializada")
-            except sqlite3.OperationalError as e:
-                if "already exists" in str(e).lower():
-                    print("✅ Base de datos ya existe")
-                else:
-                    print(f"[DB ERROR] {e}")
-            except Exception as e:
+            # Ejecutar schema completo
+            cursor.executescript(schema)
+            conn.commit()
+            conn.close()
+            print("✅ Base de datos SaaS inicializada correctamente")
+            
+        except sqlite3.OperationalError as e:
+            if "already exists" in str(e).lower():
+                print("✅ Base de datos ya existe")
+            else:
                 print(f"[DB ERROR] {e}")
-            finally:
-                conn.commit()
-                conn.close()
+        except Exception as e:
+            print(f"[DB ERROR] {e}")
     
     # ============================================
     # CARRITOS
