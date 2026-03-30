@@ -45,6 +45,24 @@ class DatabaseSaaS:
             conn = self._get_connection()
             cursor = conn.cursor()
             
+            # Verificar si la tabla carritos existe y tiene la columna usuario_id
+            cursor.execute("PRAGMA table_info(carritos)")
+            columnas = cursor.fetchall()
+            
+            if columnas:
+                nombres_columnas = [col[1] for col in columnas]
+                if 'usuario_id' not in nombres_columnas:
+                    print("[DB WARNING] Schema antiguo detectado, recreando tablas...")
+                    # Eliminar tablas antiguas
+                    cursor.execute("DROP TABLE IF EXISTS carritos")
+                    cursor.execute("DROP TABLE IF EXISTS carrito_items")
+                    cursor.execute("DROP TABLE IF EXISTS pedidos")
+                    cursor.execute("DROP TABLE IF EXISTS pedido_items")
+                    cursor.execute("DROP TABLE IF EXISTS estado_usuario")
+                    cursor.execute("DROP TABLE IF EXISTS conversaciones")
+                    conn.commit()
+                    print("[DB] Tablas antiguas eliminadas")
+            
             # Ejecutar schema completo
             cursor.executescript(schema)
             conn.commit()
