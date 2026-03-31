@@ -45,6 +45,29 @@ async def login(username: str = Form(""), password: str = Form("")):
         return HTMLResponse(content="<h1>Credenciales incorrectas</h1><a href='/admin'>Volver</a>")
     return HTMLResponse(content="<h1>Error</h1><a href='/admin'>Volver</a>")
 
+@router.get("/logout")
+async def logout():
+    """Cierra la sesión del admin"""
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Sesión Cerrada - BotlyPro</title>
+        <meta http-equiv="refresh" content="3;url=/admin">
+    </head>
+    <body style="font-family: Arial; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #667eea;">
+        <div style="background: white; padding: 40px; border-radius: 10px; text-align: center;">
+            <h1 style="color: #48bb78;">✅ Sesión Cerrada</h1>
+            <p>Has cerrado sesión correctamente.</p>
+            <p>Redirigiendo al login...</p>
+            <br>
+            <a href="/admin" style="background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Ir al Login</a>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
+
 def obtener_estadisticas():
     """Obtiene estadísticas de la base de datos"""
     stats = {
