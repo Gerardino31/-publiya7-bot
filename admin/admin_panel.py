@@ -2147,7 +2147,8 @@ async def panel_pagos_pendientes(cliente_id: str):
         
         # Generar HTML
         filas = ""
-        for c in comprobantes:
+        for i, c in enumerate(comprobantes):
+            print(f"[DEBUG] Procesando comprobante {i}: {c}")
             # Manejar fecha_envio que puede ser None
             fecha_str = str(c['fecha_envio'])[:19] if c['fecha_envio'] else 'N/A'
             filas += f"""
@@ -2205,7 +2206,10 @@ async def panel_pagos_pendientes(cliente_id: str):
         """
         return HTMLResponse(content=html)
     except Exception as e:
-        return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"[ERROR] panel_pagos_pendientes: {e}\n{error_detail}")
+        return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p><pre>{error_detail}</pre>")
 
 @router.get("/cliente-dashboard/{cliente_id}/pagos-pendientes/{comprobante_id}")
 async def ver_comprobante_detalle(cliente_id: str, comprobante_id: int):
