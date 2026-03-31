@@ -1241,7 +1241,7 @@ async def ver_pedido_detalle(pedido_id: int):
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <span class="estado-badge">{pedido['estado']}</span>
-                            <span style="margin-left: 15px; color: #718096;">{pedido['creado_en'][:19]}</span>
+                            <span style="margin-left: 15px; color: #718096;">{str(pedido['creado_en'])[:19] if pedido['creado_en'] else 'N/A'}</span>
                         </div>
                         <div>
                             <form method="POST" action="/admin/pedido/{pedido_id}/estado" style="display: inline;">
@@ -2348,24 +2348,35 @@ async def ver_comprobante_proxy(comprobante_id: int):
         media_url = imagen_data.decode() if isinstance(imagen_data, bytes) else imagen_data
         
         # Detectar si es URL de Telegram o Twilio
+        print(f"[DEBUG] Proxy imagen - URL: {media_url[:50]}...")
+        
         if media_url.startswith('telegram://'):
             # Protocolo personalizado para Telegram
             TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+            print(f"[DEBUG] Token disponible: {bool(TELEGRAM_BOT_TOKEN)}")
             if not TELEGRAM_BOT_TOKEN:
                 return HTMLResponse(content="<h1>❌ Error: Token de Telegram no configurado</h1>")
             
             file_id = media_url.replace('telegram://', '')
+            print(f"[DEBUG] File ID: {file_id[:30]}...")
+            
             # Obtener file_path de Telegram
             getfile_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getFile?file_id={file_id}"
             file_response = requests.get(getfile_url, timeout=10)
+            print(f"[DEBUG] getFile status: {file_response.status_code}")
             file_data = file_response.json()
+            print(f"[DEBUG] getFile response: {file_data}")
             
             if file_data.get('ok'):
                 file_path = file_data['result']['file_path']
                 media_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}"
+                print(f"[DEBUG] Nueva URL: {media_url[:60]}...")
                 response = requests.get(media_url, timeout=30)
+                print(f"[DEBUG] Download status: {response.status_code}")
             else:
-                return HTMLResponse(content="<h1>❌ Error: No se pudo obtener archivo de Telegram</h1>")
+                error_msg = file_data.get('description', 'Error desconocido')
+                print(f"[ERROR] Telegram getFile: {error_msg}")
+                return HTMLResponse(content=f"<h1>❌ Error Telegram: {error_msg}</h1>")
                 
         elif 'telegram.org' in media_url:
             # URL completa de Telegram
@@ -2394,13 +2405,17 @@ async def ver_comprobante_proxy(comprobante_id: int):
         content_type = response.headers.get('Content-Type', 'image/jpeg')
         
         from fastapi.responses import Response
+        print(f"[DEBUG] Retornando imagen: {len(response.content)} bytes, content-type: {content_type}")
         return Response(
             content=response.content,
             media_type=content_type
         )
         
     except Exception as e:
-        return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"[ERROR] Proxy imagen: {e}\n{error_detail}")
+        return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p><pre>{error_detail}</pre>")
 
 # Diccionario para trackear comprobantes en proceso (evitar doble-submit)
 _comprobantes_en_proceso = {}
