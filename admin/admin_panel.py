@@ -1932,41 +1932,16 @@ async def panel_modo_humano(cliente_id: str):
         sys.path.append(str(Path(__file__).parent.parent))
         from database.database_saas import db_saas
         
-        # Crear tabla si no existe (adaptado para PostgreSQL y SQLite)
+        # Usar la tabla modo_usuario (misma que usa database_saas.py)
         conn = db_saas._get_connection()
         cursor = conn.cursor()
         from database.database_saas import USE_POSTGRES
-        if USE_POSTGRES:
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS usuario_modo (
-                    id SERIAL PRIMARY KEY,
-                    cliente_id VARCHAR(50) NOT NULL,
-                    user_id VARCHAR(100) NOT NULL,
-                    modo VARCHAR(50) DEFAULT 'bot',
-                    activado_por VARCHAR(50),
-                    fecha_cambio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(cliente_id, user_id)
-                )
-            ''')
-        else:
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS usuario_modo (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    cliente_id TEXT NOT NULL,
-                    user_id TEXT NOT NULL,
-                    modo TEXT DEFAULT 'bot',
-                    activado_por TEXT,
-                    fecha_cambio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(cliente_id, user_id)
-                )
-            ''')
-        conn.commit()
         
         # Obtener usuarios en modo humano
         ph = "%s" if USE_POSTGRES else "?"
         cursor.execute(f"""
             SELECT user_id, modo, fecha_cambio 
-            FROM usuario_modo 
+            FROM modo_usuario 
             WHERE cliente_id = {ph} AND modo = 'humano'
             ORDER BY fecha_cambio DESC
         """, (cliente_id,))
