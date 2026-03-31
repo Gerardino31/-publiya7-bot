@@ -1128,12 +1128,15 @@ async def ver_pedido_detalle(pedido_id: int):
         conn.close()
         
         # Convertir items a dict
+        # Schema pedido_items: id, carrito_id, producto_id, nombre_producto, cantidad, precio_unitario, subtotal, agregado_en
         items = []
         for row in rows:
             if isinstance(row, tuple):
                 items.append({
-                    'nombre_producto': row[3], 'cantidad': row[4], 'medidas': row[5],
-                    'precio_unitario': row[6], 'subtotal': row[7]
+                    'nombre_producto': row[3], 
+                    'cantidad': row[4], 
+                    'precio_unitario': row[5], 
+                    'subtotal': row[6]
                 })
             else:
                 items.append(dict(row))
@@ -1141,14 +1144,13 @@ async def ver_pedido_detalle(pedido_id: int):
         # Generar filas de productos
         filas_items = ""
         for item in items:
-            # Manejar cantidad (puede ser número o string con medidas)
-            if item.get('medidas'):
-                cantidad = item['medidas']
-            elif item.get('cantidad'):
+            # Manejar cantidad (puede ser número o string con medidas como "100.5x300.0cm")
+            cantidad_val = item.get('cantidad')
+            if cantidad_val:
                 try:
-                    cantidad = f"{int(item['cantidad']):,} unid"
+                    cantidad = f"{int(cantidad_val):,} unid"
                 except (ValueError, TypeError):
-                    cantidad = str(item['cantidad'])  # Si no es número, mostrar como string
+                    cantidad = str(cantidad_val)  # Si no es número, mostrar como string (ej: "100.5x300.0cm")
             else:
                 cantidad = "N/A"
             
@@ -1912,27 +1914,42 @@ async def panel_modo_humano(cliente_id: str):
         sys.path.append(str(Path(__file__).parent.parent))
         from database.database_saas import db_saas
         
-        # Crear tabla si no existe
+        # Crear tabla si no existe (adaptado para PostgreSQL y SQLite)
         conn = db_saas._get_connection()
         cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS usuario_modo (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                cliente_id TEXT NOT NULL,
-                user_id TEXT NOT NULL,
-                modo TEXT DEFAULT 'bot',
-                activado_por TEXT,
-                fecha_cambio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(cliente_id, user_id)
-            )
-        ''')
+        from database.database_saas import USE_POSTGRES
+        if USE_POSTGRES:
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS usuario_modo (
+                    id SERIAL PRIMARY KEY,
+                    cliente_id VARCHAR(50) NOT NULL,
+                    user_id VARCHAR(100) NOT NULL,
+                    modo VARCHAR(50) DEFAULT 'bot',
+                    activado_por VARCHAR(50),
+                    fecha_cambio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(cliente_id, user_id)
+                )
+            ''')
+        else:
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS usuario_modo (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cliente_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    modo TEXT DEFAULT 'bot',
+                    activado_por TEXT,
+                    fecha_cambio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(cliente_id, user_id)
+                )
+            ''')
         conn.commit()
         
         # Obtener usuarios en modo humano
-        cursor.execute("""
+        ph = "%s" if USE_POSTGRES else "?"
+        cursor.execute(f"""
             SELECT user_id, modo, fecha_cambio 
             FROM usuario_modo 
-            WHERE cliente_id = ? AND modo = 'humano'
+            WHERE cliente_id = {ph} AND modo = 'humano'
             ORDER BY fecha_cambio DESC
         """, (cliente_id,))
         usuarios = cursor.fetchall()
@@ -1941,13 +1958,18 @@ async def panel_modo_humano(cliente_id: str):
         # Generar HTML
         filas = ""
         for u in usuarios:
+            # Manejar tanto tuple (PostgreSQL) como dict (SQLite)
+            if isinstance(u, tuple):
+                user_id, modo, fecha_cambio = u[0], u[1], u[2]
+            else:
+                user_id, modo, fecha_cambio = u['user_id'], u['modo'], u['fecha_cambio']
             filas += f"""
             <tr>
-                <td>{u['user_id']}</td>
+                <td>{user_id}</td>
                 <td>🟢 Activo</td>
-                <td>{u['fecha_cambio'][:19]}</td>
+                <td>{str(fecha_cambio)[:19] if fecha_cambio else 'N/A'}</td>
                 <td>
-                    <a href="/admin/cliente-dashboard/{cliente_id}/modo-humano/{u['user_id']}" 
+                    <a href="/admin/cliente-dashboard/{cliente_id}/modo-humano/{user_id}" 
                        style="background: #667eea; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">
                        💬 Responder
                     </a>

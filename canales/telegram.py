@@ -114,7 +114,7 @@ async def webhook_telegram(request: Request):
                 conn = db_saas._get_connection()
                 cursor = conn.cursor()
                 cursor.execute(f'''
-                    SELECT id FROM pedidos 
+                    SELECT id, numero_orden FROM pedidos 
                     WHERE cliente_id = {ph} AND usuario_id = {ph} AND estado = 'confirmado'
                     ORDER BY creado_en DESC LIMIT 1
                 ''', (cliente_id, usuario_id))
@@ -122,8 +122,13 @@ async def webhook_telegram(request: Request):
                 conn.close()
                 
                 if pedido:
-                    # Guardar comprobante - pedido es tupla (id,) en PostgreSQL o dict en SQLite
-                    pedido_id = pedido[0] if isinstance(pedido, tuple) else pedido['id']
+                    # Guardar comprobante - pedido es tupla (id, numero_orden) en PostgreSQL o dict en SQLite
+                    if isinstance(pedido, tuple):
+                        pedido_id = pedido[0]
+                        numero_orden = pedido[1]
+                    else:
+                        pedido_id = pedido['id']
+                        numero_orden = pedido['numero_orden']
                     
                     # Obtener URL real de la imagen de Telegram
                     # Primero llamar a getFile para obtener la ruta
@@ -152,7 +157,7 @@ async def webhook_telegram(request: Request):
                     comprobante_guardado = True
                     
                     # Responder directamente sin pasar por el router
-                    respuesta = f"✅ ¡Comprobante recibido!\n\nTu pedido *{pedido_id}* está en revisión.\n\nTe notificaremos cuando sea aprobado."
+                    respuesta = f"✅ ¡Comprobante recibido!\n\nTu pedido *{numero_orden}* está en revisión.\n\nTe notificaremos cuando sea aprobado."
                     enviar_mensaje_telegram(chat_id, respuesta)
                     return JSONResponse({"status": "ok"})
                 else:
