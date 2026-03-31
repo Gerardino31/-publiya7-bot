@@ -970,10 +970,11 @@ async def ver_pedidos():
         cursor = conn.cursor()
         
         # Nota: La tabla clientes no existe en el schema actual, simplificamos la query
+        # ORDER BY id DESC para mostrar pedidos más recientes primero (creado_en puede ser NULL)
         cursor.execute("""
             SELECT id, numero_orden, cliente_id, usuario_id, total, estado, creado_en
             FROM pedidos
-            ORDER BY creado_en DESC
+            ORDER BY id DESC
         """)
         
         rows = cursor.fetchall()
