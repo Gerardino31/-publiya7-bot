@@ -2324,19 +2324,26 @@ async def ver_comprobante_proxy(comprobante_id: int):
         import requests
         from base64 import b64encode
         sys.path.append(str(Path(__file__).parent.parent))
-        from database.database_saas import db_saas
+        from database.database_saas import db_saas, USE_POSTGRES
         
         # Obtener URL del comprobante
         conn = db_saas._get_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT imagen_data FROM comprobantes_pago WHERE id = ?', (comprobante_id,))
+        ph = "%s" if USE_POSTGRES else "?"
+        cursor.execute(f'SELECT imagen_data FROM comprobantes_pago WHERE id = {ph}', (comprobante_id,))
         row = cursor.fetchone()
         conn.close()
         
         if not row:
             return HTMLResponse(content="<h1>❌ Comprobante no encontrado</h1>")
         
-        media_url = row['imagen_data'].decode()
+        # Manejar tanto tuple (PostgreSQL) como dict (SQLite)
+        if isinstance(row, tuple):
+            imagen_data = row[0]
+        else:
+            imagen_data = row['imagen_data']
+        
+        media_url = imagen_data.decode() if isinstance(imagen_data, bytes) else imagen_data
         
         # Detectar si es URL de Telegram o Twilio
         if media_url.startswith('telegram://'):
@@ -2397,7 +2404,7 @@ async def ver_comprobante_proxy(comprobante_id: int):
 _comprobantes_en_proceso = {}
 
 @router.post("/cliente-dashboard/{cliente_id}/pagos-pendientes/{comprobante_id}/verificar")
-async def verificar_pago(cliente_id: str, comprobante_id: int, estado: str = Form(...)):
+async def verificar_pago(cliente_id: str, comprobante_id: int, estado: str = Form(None)):
     """Marca el pago como verificado o rechazado y notifica al cliente"""
     try:
         # Verificar si ya está en proceso (evitar doble-submit)
@@ -2413,21 +2420,46 @@ async def verificar_pago(cliente_id: str, comprobante_id: int, estado: str = For
             </html>
             """)
         
+        # Validar estado
+        if not estado:
+            return HTMLResponse(content="""
+            <!DOCTYPE html>
+            <html>
+            <head><title>Error</title></head>
+            <body style="font-family: Arial; text-align: center; padding: 50px;">
+                <h1 style="color: #f56565;">❌ Error</h1>
+                <p>Debes seleccionar 'Aprobar' o 'Rechazar'.</p>
+                <br>
+                <a href="javascript:history.back()" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">← Volver</a>
+            </body>
+            </html>
+            """)
+        
         # Marcar como en proceso
         _comprobantes_en_proceso[comprobante_id] = True
         
         sys.path.append(str(Path(__file__).parent.parent))
-        from database.database_saas import db_saas
+        from database.database_saas import db_saas, USE_POSTGRES
         import os
         
         # Obtener info del comprobante
         conn = db_saas._get_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT user_id, pedido_id, estado FROM comprobantes_pago WHERE id = ?', (comprobante_id,))
+        ph = "%s" if USE_POSTGRES else "?"
+        cursor.execute(f'SELECT user_id, pedido_id, estado FROM comprobantes_pago WHERE id = {ph}', (comprobante_id,))
         row = cursor.fetchone()
         
+        if not row:
+            return HTMLResponse(content="<h1>❌ Comprobante no encontrado</h1>")
+        
+        # Convertir a dict (manejar tuple o dict)
+        if isinstance(row, tuple):
+            user_id, pedido_id, estado_actual = row[0], row[1], row[2]
+        else:
+            user_id, pedido_id, estado_actual = row['user_id'], row['pedido_id'], row['estado']
+        
         # Verificar si ya fue procesado
-        if row and row['estado'] != 'pendiente':
+        if estado_actual != 'pendiente':
             conn.close()
             del _comprobantes_en_proceso[comprobante_id]
             return HTMLResponse(content=f"""
@@ -2436,7 +2468,7 @@ async def verificar_pago(cliente_id: str, comprobante_id: int, estado: str = For
             <head><title>Ya Procesado</title></head>
             <body style="font-family: Arial; text-align: center; padding: 50px;">
                 <h1 style="color: #48bb78;">✅ Ya Procesado</h1>
-                <p>Este pago ya fue {row['estado']} anteriormente.</p>
+                <p>Este pago ya fue {estado_actual} anteriormente.</p>
                 <br>
                 <a href="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Volver a Pagos</a>
             </body>
@@ -2444,12 +2476,6 @@ async def verificar_pago(cliente_id: str, comprobante_id: int, estado: str = For
             """)
         
         conn.close()
-        
-        if not row:
-            return HTMLResponse(content="<h1>❌ Comprobante no encontrado</h1>")
-        
-        user_id = row['user_id']
-        pedido_id = row['pedido_id']
         
         # Actualizar estado
         db_saas.verificar_comprobante(comprobante_id, "Admin", estado)
