@@ -154,7 +154,7 @@ async def webhook_telegram(request: Request):
                         cliente_id=cliente_id,
                         user_id=usuario_id,
                         pedido_id=pedido_id,
-                        imagen_data=file_url.encode(),
+                        imagen_data=file_url,  # Guardar como string, no bytes
                         content_type='image/jpeg'
                     )
                     print(f"[Telegram] Comprobante guardado para pedido {pedido_id}")
