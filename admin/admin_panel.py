@@ -1146,13 +1146,14 @@ async def ver_pedido_detalle(pedido_id: int):
         items = []
         for row in rows:
             if isinstance(row, tuple):
-                # La estructura puede variar, detectamos automáticamente
-                # id=0, pedido_id=1, producto_id=2, nombre=3, cantidad=4, precio=-2, subtotal=-1
+                # La estructura es: id, pedido_id, producto_id, nombre, cantidad, ?, precio, subtotal
+                # Usamos índices positivos para evitar problemas
+                row_len = len(row)
                 items.append({
-                    'nombre_producto': row[3] if len(row) > 3 else 'N/A', 
-                    'cantidad': row[4] if len(row) > 4 else None, 
-                    'precio_unitario': row[-2] if len(row) > 1 else 0,  # precio es el penúltimo
-                    'subtotal': row[-1] if len(row) > 0 else 0  # subtotal es el último
+                    'nombre_producto': row[3] if row_len > 3 else 'N/A', 
+                    'cantidad': row[4] if row_len > 4 else None, 
+                    'precio_unitario': row[row_len-2] if row_len > 1 else 0,  # penúltimo
+                    'subtotal': row[row_len-1] if row_len > 0 else 0  # último
                 })
             else:
                 items.append(dict(row))

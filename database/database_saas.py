@@ -595,8 +595,8 @@ class DatabaseSaaS:
             print(f"[DEBUG] Guardando comprobante: cliente={cliente_id}, user={user_id}, pedido={pedido_id}")
             ph = "%s" if USE_POSTGRES else "?"
             cursor.execute(f"""
-                INSERT INTO comprobantes_pago (cliente_id, user_id, pedido_id, imagen_data)
-                VALUES ({ph}, {ph}, {ph}, {ph}) RETURNING id
+                INSERT INTO comprobantes_pago (cliente_id, user_id, pedido_id, imagen_data, estado)
+                VALUES ({ph}, {ph}, {ph}, {ph}, 'pendiente') RETURNING id
             """, (cliente_id, user_id, pedido_id, imagen_data))
             
             if USE_POSTGRES:
