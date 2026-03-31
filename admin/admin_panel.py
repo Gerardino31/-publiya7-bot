@@ -2086,11 +2086,46 @@ async def enviar_mensaje_asesor(cliente_id: str, user_id: str, mensaje: str = Fo
 async def reactivar_bot(cliente_id: str, user_id: str):
     """Reactivar bot para el usuario"""
     try:
+        import os
+        import requests
         sys.path.append(str(Path(__file__).parent.parent))
         from database.database_saas import db_saas
         
         # Cambiar modo a 'bot'
         db_saas.set_modo_usuario(cliente_id, user_id, 'bot', 'asesor')
+        
+        # Enviar notificación al usuario
+        mensaje_reactivacion = """🤖 *Bot Reactivado*
+
+El asesor ha finalizado la conversación.
+
+Ahora puedes continuar con el bot. Escribe *menu* para ver las opciones."""
+        
+        # Detectar canal (Telegram o WhatsApp)
+        if user_id.startswith('telegram:'):
+            telegram_id = user_id.replace('telegram:', '')
+            TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+            if TELEGRAM_BOT_TOKEN:
+                url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+                payload = {
+                    'chat_id': telegram_id,
+                    'text': mensaje_reactivacion,
+                    'parse_mode': 'Markdown'
+                }
+                try:
+                    requests.post(url, json=payload, timeout=10)
+                    print(f"[DEBUG] Notificación de reactivación enviada a {user_id}")
+                except Exception as e:
+                    print(f"[ERROR] Enviando notificación de reactivación: {e}")
+        elif user_id.startswith('whatsapp:'):
+            # Para WhatsApp usar Twilio
+            from canales.whatsapp import enviar_mensaje_whatsapp
+            telefono = user_id.replace('whatsapp:', '')
+            try:
+                enviar_mensaje_whatsapp(telefono, mensaje_reactivacion)
+                print(f"[DEBUG] Notificación de reactivación enviada a {user_id}")
+            except Exception as e:
+                print(f"[ERROR] Enviando notificación de reactivación: {e}")
         
         return HTMLResponse(content=f"""
         <!DOCTYPE html>
@@ -2099,13 +2134,17 @@ async def reactivar_bot(cliente_id: str, user_id: str):
         <body style="font-family: Arial; text-align: center; padding: 50px;">
             <h1 style="color: #48bb78;">🤖 Bot Reactivado</h1>
             <p>El usuario {user_id} volverá a interactuar con el bot.</p>
+            <p>Se ha enviado una notificación al chat del cliente.</p>
             <br>
             <a href="/admin/cliente-dashboard/{cliente_id}/modo-humano" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Volver a Modo Humano</a>
         </body>
         </html>
         """)
     except Exception as e:
-        return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p>")
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"[ERROR] Reactivar bot: {e}\n{error_detail}")
+        return HTMLResponse(content=f"<h1>❌ Error</h1><p>{str(e)}</p><pre>{error_detail}</pre>")
 
 # ============================================
 # V2: VERIFICACIÓN DE PAGOS - PANEL CLIENTE
