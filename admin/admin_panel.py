@@ -1144,14 +1144,14 @@ async def ver_pedido_detalle(pedido_id: int):
             if item['medidas']:
                 cantidad = item['medidas']
             else:
-                cantidad = f"{item['cantidad']:,} unid"
+                cantidad = f"{int(item['cantidad'] or 0):,} unid"
             
             filas_items += f"""
             <tr>
                 <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">{item['nombre_producto']}</td>
                 <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: center;">{cantidad}</td>
-                <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">${item['precio_unitario']:,}</td>
-                <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${item['subtotal']:,}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">${int(item['precio_unitario'] or 0):,}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${int(item['subtotal'] or 0):,}</td>
             </tr>
             """
         
