@@ -891,19 +891,33 @@ Horario: {self.config.get('horario_atencion', {}).get('lunes_viernes', 'Consulta
     def _mostrar_historial_pedidos(self, user_id: str, cliente_id: str) -> Tuple[str, dict]:
         """Muestra el historial de pedidos del usuario."""
         try:
-            from database.database_saas import db_saas
+            from database.database_saas import db_saas, USE_POSTGRES
             conn = db_saas._get_connection()
             cursor = conn.cursor()
             
-            cursor.execute("""
+            ph = "%s" if USE_POSTGRES else "?"
+            cursor.execute(f"""
                 SELECT numero_orden, total, estado, creado_en 
                 FROM pedidos 
-                WHERE cliente_id = ? AND usuario_id = ?
-                ORDER BY creado_en DESC LIMIT 5
+                WHERE cliente_id = {ph} AND usuario_id = {ph}
+                ORDER BY id DESC LIMIT 5
             """, (cliente_id, user_id))
             
-            pedidos = cursor.fetchall()
+            rows = cursor.fetchall()
             conn.close()
+            
+            # Convertir a dict (manejar tuple o dict)
+            pedidos = []
+            for row in rows:
+                if isinstance(row, tuple):
+                    pedidos.append({
+                        'numero_orden': row[0],
+                        'total': row[1],
+                        'estado': row[2],
+                        'creado_en': row[3]
+                    })
+                else:
+                    pedidos.append(dict(row))
             
             if not pedidos:
                 return "📭 *No tienes pedidos registrados.*\n\n🛒 Escribe *menu* para hacer tu primer pedido.", {'tipo': 'historial_vacio'}
@@ -918,9 +932,11 @@ Horario: {self.config.get('horario_atencion', {}).get('lunes_viernes', 'Consulta
                     'cancelado': '❌'
                 }.get(p['estado'], '❓')
                 
+                fecha_str = str(p['creado_en'])[:10] if p['creado_en'] else 'N/A'
+                
                 mensaje += f"{estado_icono} *{p['numero_orden']}*\n"
                 mensaje += f"   💰 ${p['total']:,} COP\n"
-                mensaje += f"   📅 {p['creado_en'][:10]}\n"
+                mensaje += f"   📅 {fecha_str}\n"
                 mensaje += f"   🏷️ {p['estado'].upper()}\n\n"
             
             mensaje += "¿Quieres hacer un nuevo pedido? Escribe 'menu'."
