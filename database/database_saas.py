@@ -411,8 +411,8 @@ class DatabaseSaaS:
                 cursor.execute(f"""
                     INSERT INTO pedidos (numero_orden, cliente_id, usuario_id, carrito_id, 
                         subtotal, total, cantidad_items, nombre_comprador, telefono_contacto, 
-                        direccion_entrega, estado, confirmado_en)
-                    VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 'confirmado', NOW()) RETURNING id
+                        direccion_entrega, estado, creado_en, confirmado_en)
+                    VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 'confirmado', NOW(), NOW()) RETURNING id
                 """, (numero_orden, cliente_id, usuario_id, carrito_id,
                       subtotal or 0, total or 0, cantidad_items or 0,
                       nombre_comprador, telefono_final, direccion))
@@ -422,8 +422,8 @@ class DatabaseSaaS:
                 cursor.execute(f"""
                     INSERT INTO pedidos (numero_orden, cliente_id, usuario_id, carrito_id, 
                         subtotal, total, cantidad_items, nombre_comprador, telefono_contacto, 
-                        direccion_entrega, estado, confirmado_en)
-                    VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 'confirmado', datetime('now'))
+                        direccion_entrega, estado, creado_en, confirmado_en)
+                    VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 'confirmado', datetime('now'), datetime('now'))
                 """, (numero_orden, cliente_id, usuario_id, carrito_id,
                       subtotal or 0, total or 0, cantidad_items or 0,
                       nombre_comprador, telefono_final, direccion))
