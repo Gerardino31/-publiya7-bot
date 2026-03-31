@@ -976,7 +976,14 @@ async def ver_pedidos():
             ORDER BY creado_en DESC
         """)
         
-        for row in cursor.fetchall():
+        rows = cursor.fetchall()
+        print(f"[DEBUG] Filas obtenidas: {len(rows)}")
+        for row in rows:
+            # Debug: mostrar datos crudos
+            if isinstance(row, tuple):
+                print(f"[DEBUG] Row tuple: {row}")
+            else:
+                print(f"[DEBUG] Row dict: {dict(row)}")
             # Manejar tanto tuple (PostgreSQL) como dict (SQLite)
             if isinstance(row, tuple):
                 pedidos.append({
@@ -1000,8 +1007,11 @@ async def ver_pedidos():
                 })
         
         conn.close()
+        print(f"[DEBUG] Total pedidos procesados: {len(pedidos)}")
     except Exception as e:
         print(f"⚠️ Error cargando pedidos: {e}")
+        import traceback
+        traceback.print_exc()
     
     # Generar filas de la tabla
     filas = ""
