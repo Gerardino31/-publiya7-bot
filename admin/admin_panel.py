@@ -984,7 +984,7 @@ async def ver_pedidos():
                     'numero_orden': row[1],
                     'cliente_id': row[2],
                     'cliente_nombre': row[2],  # Usamos cliente_id como nombre por ahora
-                    'total': row[4],
+                    'total': int(row[4] or 0),
                     'estado': row[5],
                     'creado_en': row[6]
                 })
@@ -994,7 +994,7 @@ async def ver_pedidos():
                     'numero_orden': row['numero_orden'],
                     'cliente_id': row['cliente_id'],
                     'cliente_nombre': row['cliente_id'],  # Simplificado
-                    'total': row['total'],
+                    'total': int(row['total'] or 0),
                     'estado': row['estado'],
                     'creado_en': row['creado_en']
                 })
@@ -1141,17 +1141,33 @@ async def ver_pedido_detalle(pedido_id: int):
         # Generar filas de productos
         filas_items = ""
         for item in items:
-            if item['medidas']:
+            # Manejar cantidad (puede ser número o string con medidas)
+            if item.get('medidas'):
                 cantidad = item['medidas']
+            elif item.get('cantidad'):
+                try:
+                    cantidad = f"{int(item['cantidad']):,} unid"
+                except (ValueError, TypeError):
+                    cantidad = str(item['cantidad'])  # Si no es número, mostrar como string
             else:
-                cantidad = f"{int(item['cantidad'] or 0):,} unid"
+                cantidad = "N/A"
+            
+            # Manejar precios (asegurar que sean números)
+            try:
+                precio = int(item.get('precio_unitario') or 0)
+            except (ValueError, TypeError):
+                precio = 0
+            try:
+                subtotal = int(item.get('subtotal') or 0)
+            except (ValueError, TypeError):
+                subtotal = 0
             
             filas_items += f"""
             <tr>
-                <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">{item['nombre_producto']}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">{item.get('nombre_producto', 'N/A')}</td>
                 <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: center;">{cantidad}</td>
-                <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">${int(item['precio_unitario'] or 0):,}</td>
-                <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${int(item['subtotal'] or 0):,}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">${precio:,}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${subtotal:,}</td>
             </tr>
             """
         
