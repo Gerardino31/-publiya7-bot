@@ -939,7 +939,7 @@ Horario: {self.config.get('horario_atencion', {}).get('lunes_viernes', 'Consulta
                 mensaje += f"   📅 {fecha_str}\n"
                 mensaje += f"   🏷️ {p['estado'].upper()}\n\n"
             
-            mensaje += "¿Quieres hacer un nuevo pedido? Escribe *menu*."}
+            mensaje += "¿Quieres hacer un nuevo pedido? Escribe *menu*."
             return mensaje, {'tipo': 'historial'}
             
         except Exception as e:
