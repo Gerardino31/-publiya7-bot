@@ -592,6 +592,7 @@ class DatabaseSaaS:
         conn = self._get_connection()
         cursor = conn.cursor()
         try:
+            print(f"[DEBUG] Guardando comprobante: cliente={cliente_id}, user={user_id}, pedido={pedido_id}")
             ph = "%s" if USE_POSTGRES else "?"
             cursor.execute(f"""
                 INSERT INTO comprobantes_pago (cliente_id, user_id, pedido_id, imagen_data)
@@ -599,7 +600,9 @@ class DatabaseSaaS:
             """, (cliente_id, user_id, pedido_id, imagen_data))
             
             if USE_POSTGRES:
-                comprobante_id = cursor.fetchone()[0]
+                result = cursor.fetchone()
+                comprobante_id = result[0] if result else 0
+                print(f"[DEBUG] Comprobante guardado con ID: {comprobante_id}")
             else:
                 comprobante_id = cursor.lastrowid
             
@@ -610,18 +613,24 @@ class DatabaseSaaS:
             conn.rollback()
             conn.close()
             print(f"[ERROR] guardar_comprobante_pago: {e}")
+            import traceback
+            traceback.print_exc()
             return 0
     
     def obtener_comprobantes_pendientes(self, cliente_id: str) -> List[Dict]:
         conn = self._get_connection()
         cursor = conn.cursor()
         ph = "%s" if USE_POSTGRES else "?"
+        print(f"[DEBUG] Buscando comprobantes pendientes para cliente: {cliente_id}")
         cursor.execute(f"""
-            SELECT id, pedido_id, user_id, fecha_envio FROM comprobantes_pago 
+            SELECT id, pedido_id, user_id, fecha_envio, estado FROM comprobantes_pago 
             WHERE cliente_id = {ph} AND estado = 'pendiente'
         """, (cliente_id,))
         rows = cursor.fetchall()
         conn.close()
+        print(f"[DEBUG] Comprobantes encontrados: {len(rows)}")
+        for r in rows:
+            print(f"[DEBUG] Comprobante: id={r[0]}, pedido={r[1]}, estado={r[4] if len(r) > 4 else 'N/A'}")
         
         return [{'id': r[0], 'pedido_id': r[1], 'user_id': r[2], 'fecha_envio': r[3]} for r in rows]
     
