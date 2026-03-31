@@ -2348,16 +2348,23 @@ async def ver_comprobante_proxy(comprobante_id: int):
         # Decodificar la URL
         if isinstance(imagen_data, bytes):
             media_url = imagen_data.decode('utf-8')
-        elif isinstance(imagen_data, str) and imagen_data.startswith('\\x'):
-            # Es una representación hex escapada, decodificar
-            try:
-                media_url = bytes.fromhex(imagen_data.replace('\\x', '')).decode('utf-8')
-            except:
+        elif isinstance(imagen_data, str):
+            # Verificar si es formato hex escapado (\x68\x74\x74...)
+            if '\\x' in imagen_data:
+                try:
+                    # Reemplazar \x por nada y decodificar hex
+                    hex_string = imagen_data.replace('\\x', '')
+                    media_url = bytes.fromhex(hex_string).decode('utf-8')
+                    print(f"[DEBUG] URL decodificada de hex: {media_url[:80]}...")
+                except Exception as e:
+                    print(f"[DEBUG] Error decodificando hex: {e}, usando raw")
+                    media_url = imagen_data
+            else:
                 media_url = imagen_data
         else:
             media_url = imagen_data
         
-        print(f"[DEBUG] URL decodificada: {media_url[:80]}...")
+        print(f"[DEBUG] URL final: {media_url[:80]}...")
         
         # Detectar si es URL de Telegram o Twilio
         print(f"[DEBUG] Proxy imagen - URL: {media_url[:50]}...")
