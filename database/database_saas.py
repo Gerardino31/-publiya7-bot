@@ -622,15 +622,25 @@ class DatabaseSaaS:
         cursor = conn.cursor()
         ph = "%s" if USE_POSTGRES else "?"
         print(f"[DEBUG] Buscando comprobantes pendientes para cliente: {cliente_id}")
+        # Primero vemos TODOS los comprobantes sin filtro
+        cursor.execute(f"""
+            SELECT id, pedido_id, user_id, fecha_envio, estado FROM comprobantes_pago 
+            WHERE cliente_id = {ph}
+        """, (cliente_id,))
+        all_rows = cursor.fetchall()
+        print(f"[DEBUG] Total comprobantes para cliente: {len(all_rows)}")
+        for r in all_rows:
+            estado_val = r[4] if len(r) > 4 else 'N/A'
+            print(f"[DEBUG] Comprobante: id={r[0]}, pedido={r[1]}, estado='{estado_val}'")
+        
+        # Ahora filtramos por pendiente
         cursor.execute(f"""
             SELECT id, pedido_id, user_id, fecha_envio, estado FROM comprobantes_pago 
             WHERE cliente_id = {ph} AND estado = 'pendiente'
         """, (cliente_id,))
         rows = cursor.fetchall()
         conn.close()
-        print(f"[DEBUG] Comprobantes encontrados: {len(rows)}")
-        for r in rows:
-            print(f"[DEBUG] Comprobante: id={r[0]}, pedido={r[1]}, estado={r[4] if len(r) > 4 else 'N/A'}")
+        print(f"[DEBUG] Comprobantes con estado='pendiente': {len(rows)}")
         
         return [{'id': r[0], 'pedido_id': r[1], 'user_id': r[2], 'fecha_envio': r[3]} for r in rows]
     

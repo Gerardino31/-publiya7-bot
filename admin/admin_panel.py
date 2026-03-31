@@ -1142,15 +1142,17 @@ async def ver_pedido_detalle(pedido_id: int):
             print(f"[DEBUG] Item row: {r}")
         
         # Convertir items a dict
-        # Schema pedido_items: id, carrito_id, producto_id, nombre_producto, cantidad, precio_unitario, subtotal
+        # Schema pedido_items: id, pedido_id, producto_id, nombre_producto, cantidad, [medidas], precio_unitario, subtotal
         items = []
         for row in rows:
             if isinstance(row, tuple):
+                # La estructura puede variar, detectamos automáticamente
+                # id=0, pedido_id=1, producto_id=2, nombre=3, cantidad=4, precio=-2, subtotal=-1
                 items.append({
                     'nombre_producto': row[3] if len(row) > 3 else 'N/A', 
                     'cantidad': row[4] if len(row) > 4 else None, 
-                    'precio_unitario': row[5] if len(row) > 5 else 0, 
-                    'subtotal': row[6] if len(row) > 6 else 0
+                    'precio_unitario': row[-2] if len(row) > 1 else 0,  # precio es el penúltimo
+                    'subtotal': row[-1] if len(row) > 0 else 0  # subtotal es el último
                 })
             else:
                 items.append(dict(row))
