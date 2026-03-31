@@ -2148,11 +2148,13 @@ async def panel_pagos_pendientes(cliente_id: str):
         # Generar HTML
         filas = ""
         for c in comprobantes:
+            # Manejar fecha_envio que puede ser None
+            fecha_str = str(c['fecha_envio'])[:19] if c['fecha_envio'] else 'N/A'
             filas += f"""
             <tr>
                 <td>{c['pedido_id']}</td>
                 <td>{c['user_id']}</td>
-                <td>{c['fecha_envio'][:19]}</td>
+                <td>{fecha_str}</td>
                 <td><span style="color: #ecc94b; font-weight: bold;">⏳ Pendiente</span></td>
                 <td>
                     <a href="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes/{c['id']}" 
