@@ -169,6 +169,7 @@ async def dashboard():
                     <a href="/admin/pedidos" style="background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px;">📦 Pedidos</a>
                     <a href="/admin/exportar-pedidos" style="background: #38a169; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px;">📊 Exportar</a>
                     <a href="/admin/nuevo-cliente" style="background: #48bb78; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px;">➕ Nuevo Cliente</a>
+                    <a href="/admin/logout" style="background: #e53e3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px;">🚪 Cerrar Sesión</a>
                 </div>
             </div>
             
