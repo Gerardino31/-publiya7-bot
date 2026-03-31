@@ -2288,20 +2288,22 @@ async def ver_comprobante_detalle(cliente_id: str, comprobante_id: int):
                 
                 <div class="card">
                     <h3>✅ Verificación</h3>
-                    <form method="POST" action="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes/{comprobante_id}/verificar" onsubmit="return disableButtons(this);">
-                        <button type="submit" name="estado" value="verificado" class="btn btn-success" id="btnAprobar">
+                    <form method="POST" action="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes/{comprobante_id}/verificar" id="verifyForm">
+                        <input type="hidden" name="estado" id="estadoInput" value="">
+                        <button type="button" onclick="submitForm('verificado')" class="btn btn-success" id="btnAprobar">
                             ✅ Aprobar Pago
                         </button>
-                        <button type="submit" name="estado" value="rechazado" class="btn btn-danger" id="btnRechazar">
+                        <button type="button" onclick="submitForm('rechazado')" class="btn btn-danger" id="btnRechazar">
                             ❌ Rechazar
                         </button>
                     </form>
                     <script>
-                        function disableButtons(form) {{
+                        function submitForm(valor) {{
+                            document.getElementById('estadoInput').value = valor;
                             document.getElementById('btnAprobar').disabled = true;
                             document.getElementById('btnRechazar').disabled = true;
                             document.getElementById('btnAprobar').innerText = '⏳ Procesando...';
-                            return true;
+                            document.getElementById('verifyForm').submit();
                         }}
                     </script>
                 </div>
