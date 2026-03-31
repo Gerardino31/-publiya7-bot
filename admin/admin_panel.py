@@ -1506,7 +1506,6 @@ async def cliente_dashboard(cliente_id: str):
     <body>
         <div class="header">
             <h2>🤖 BotlyPro - {nombre_negocio}</h2>
-            <a href="/admin/cliente-login" class="logout">Cerrar Sesión</a>
         </div>
         
         <div class="container">
@@ -1517,6 +1516,7 @@ async def cliente_dashboard(cliente_id: str):
                     <a href="/admin/cliente-dashboard/{cliente_id}/modo-humano" style="background: #ed8936; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 13px;">👥 Modo Humano</a>
                     <a href="/admin/cliente-dashboard/{cliente_id}/pagos-pendientes" style="background: #ecc94b; color: #744210; padding: 8px 16px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 13px;">💳 Pagos</a>
                     <a href="/admin/cliente-dashboard/{cliente_id}/exportar" style="background: #38a169; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 13px;">📊 Exportar</a>
+                    <a href="/admin/cliente-login" style="background: #e53e3e; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 13px;">🚪 Cerrar Sesión</a>
                 </div>
             </div>
             
