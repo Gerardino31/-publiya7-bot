@@ -106,17 +106,21 @@ async def webhook_telegram(request: Request):
                 sys.path.append(str(Path(__file__).parent.parent))
                 from database.database_saas import db_saas
                 
-                # Obtener pedido pendiente del usuario
+                # Obtener pedido más reciente del usuario (pendiente o confirmado)
                 # Adaptar query según base de datos
                 from database.database_saas import USE_POSTGRES
                 ph = "%s" if USE_POSTGRES else "?"
                 
                 conn = db_saas._get_connection()
                 cursor = conn.cursor()
+                # Buscar pedido más reciente pendiente de pago
+                # Usar id DESC en lugar de creado_en porque creado_en puede ser NULL
                 cursor.execute(f'''
                     SELECT id, numero_orden FROM pedidos 
-                    WHERE cliente_id = {ph} AND usuario_id = {ph} AND estado = 'confirmado'
-                    ORDER BY creado_en DESC LIMIT 1
+                    WHERE cliente_id = {ph} AND usuario_id = {ph} 
+                    AND estado IN ('pendiente', 'confirmado')
+                    AND (estado_pago IS NULL OR estado_pago = 'pendiente')
+                    ORDER BY id DESC LIMIT 1
                 ''', (cliente_id, usuario_id))
                 pedido = cursor.fetchone()
                 conn.close()
