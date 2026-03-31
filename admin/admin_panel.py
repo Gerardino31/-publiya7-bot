@@ -1024,7 +1024,7 @@ async def ver_pedidos():
                     {estado_info['icono']} {p['estado'].upper()}
                 </span>
             </td>
-            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; color: #718096;">📅 {(p['creado_en'][:10] if p['creado_en'] else 'N/A')}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; color: #718096;">📅 {str(p['creado_en'])[:10] if p['creado_en'] else 'N/A'}</td>
             <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">
                 <a href="/admin/pedido/{p['id']}" style="background: #667eea; color: white; padding: 8px 16px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold;">👁️ Ver</a>
             </td>
@@ -1636,7 +1636,7 @@ def generar_tabla_pedidos(pedidos: list) -> str:
             <td>{p['numero_orden']}</td>
             <td>${p['total']:,}</td>
             <td class="{estado_class}">{p['estado'].upper()}</td>
-            <td>{p['creado_en'][:10]}</td>
+            <td>{str(p['creado_en'])[:10] if p['creado_en'] else 'N/A'}</td>
         </tr>
         """
     
