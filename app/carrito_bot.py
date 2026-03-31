@@ -248,6 +248,8 @@ class CarritoBot:
             carrito_id=carrito['id'],
             cliente_id=cliente_id,
             usuario_id=user_id,
+            total=carrito['total'],
+            cantidad_items=carrito['cantidad_items'],
             nombre_comprador=nombre,
             telefono_contacto=telefono
         )
