@@ -2216,20 +2216,33 @@ async def ver_comprobante_detalle(cliente_id: str, comprobante_id: int):
     """Ver detalle de un comprobante de pago"""
     try:
         sys.path.append(str(Path(__file__).parent.parent))
-        from database.database_saas import db_saas
+        from database.database_saas import db_saas, USE_POSTGRES
         
         # Obtener comprobante
         conn = db_saas._get_connection()
         cursor = conn.cursor()
-        cursor.execute('''
+        ph = "%s" if USE_POSTGRES else "?"
+        cursor.execute(f'''
             SELECT * FROM comprobantes_pago 
-            WHERE id = ? AND cliente_id = ?
+            WHERE id = {ph} AND cliente_id = {ph}
         ''', (comprobante_id, cliente_id))
-        comprobante = cursor.fetchone()
+        row = cursor.fetchone()
         conn.close()
         
-        if not comprobante:
+        if not row:
             return HTMLResponse(content="<h1>❌ No encontrado</h1>")
+        
+        # Convertir a dict (manejar tuple o dict)
+        if isinstance(row, tuple):
+            # Schema: id, cliente_id, user_id, pedido_id, imagen_data, estado, fecha_envio, fecha_verificacion, verificado_por
+            comprobante = {
+                'id': row[0], 'cliente_id': row[1], 'user_id': row[2], 'pedido_id': row[3],
+                'imagen_data': row[4], 'estado': row[5], 'fecha_envio': row[6],
+                'fecha_verificacion': row[7] if len(row) > 7 else None,
+                'verificado_por': row[8] if len(row) > 8 else None
+            }
+        else:
+            comprobante = dict(row)
         
         html = f"""
         <!DOCTYPE html>
@@ -2257,7 +2270,7 @@ async def ver_comprobante_detalle(cliente_id: str, comprobante_id: int):
                     <h3>📋 Información del Pago</h3>
                     <div class="info"><span class="label">Pedido:</span> {comprobante['pedido_id']}</div>
                     <div class="info"><span class="label">Cliente:</span> {comprobante['user_id']}</div>
-                    <div class="info"><span class="label">Enviado:</span> {comprobante['fecha_envio'][:19]}</div>
+                    <div class="info"><span class="label">Enviado:</span> {str(comprobante['fecha_envio'])[:19] if comprobante['fecha_envio'] else 'N/A'}</div>
                     <div class="info"><span class="label">Estado:</span> ⏳ Pendiente</div>
                 </div>
                 
